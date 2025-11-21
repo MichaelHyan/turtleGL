@@ -1,0 +1,378 @@
+'''--- turtleGL v1.0.0 ---'''
+'''---     by Hyan     ---'''
+import numpy as np
+import turtle
+import math
+class camera():
+    def __init__(self):
+        self.camera_position = [0, 0, 0]
+        self.camera_direction = [0, 0, 1]
+        self.camera_focal = 1
+        self.ray = [0,0,-1]
+        self.rend = 0
+        self.shade_value = 128
+        self.pensize = 1
+        self.pencolor = '#000000'
+        self.type = 1
+        turtle.penup()
+        turtle.tracer(0)
+        turtle.hideturtle()
+
+    def tracer(self, t):
+        turtle.tracer(t)
+
+    def to_target(self,t):
+        self.camera_direction = [t[0]-self.camera_position[0],t[1]-self.camera_position[1],t[2]-self.camera_position[2]]
+
+    def pointfocal(self, point_3d):
+        position = [self.camera_position[0],self.camera_position[2],self.camera_position[1]]
+        direction = [self.camera_direction[0],self.camera_direction[2],self.camera_direction[1]]
+        point_3d[-1],point_3d[-2] = point_3d[-2],point_3d[-1]
+        cam_pos = np.array(position)
+        cam_dir = np.array(direction)
+        point_3d = np.array(point_3d)
+        cam_dir = cam_dir / np.linalg.norm(cam_dir)
+        z_axis = cam_dir
+        z_axis = z_axis / np.linalg.norm(z_axis)
+        up = np.array([0, 1, 0])
+        x_axis = np.cross(up, z_axis)
+        x_axis = x_axis / np.linalg.norm(x_axis)
+        y_axis = np.cross(z_axis, x_axis)
+        view_matrix = np.eye(4)
+        view_matrix[0, :3] = x_axis
+        view_matrix[1, :3] = y_axis
+        view_matrix[2, :3] = z_axis
+        view_matrix[0, 3] = -np.dot(x_axis, cam_pos)
+        view_matrix[1, 3] = -np.dot(y_axis, cam_pos)
+        view_matrix[2, 3] = -np.dot(z_axis, cam_pos)
+        point_homo = np.append(point_3d, 1)
+        point_cam = view_matrix @ point_homo
+        if point_cam[2] <= 0:
+            return [0,0]
+        u = (self.camera_focal * point_cam[0]) / point_cam[2]
+        v = (self.camera_focal * point_cam[1]) / point_cam[2]
+        return np.array([u, v]).tolist()
+    
+    def pointcabinet(self, point_3d):
+        return [point_3d[0]+0.5*point_3d[1]*math.cos(45), point_3d[2]+0.5*point_3d[1]*math.sin(45)]
+    
+    def draw_axis(self,l):
+        if self.type == 1:
+            turtle.pensize = self.pensize
+            turtle.color('#ff0000')
+            turtle.goto(self.pointfocal([0,0,0]))
+            turtle.pendown()
+            turtle.goto(self.pointfocal([l,0,0]))
+            turtle.penup()
+            turtle.color('#00ff00')
+            turtle.goto(self.pointfocal([0,0,0]))
+            turtle.pendown()
+            turtle.goto(self.pointfocal([0,l,0]))
+            turtle.penup()
+            turtle.color('#0000ff')
+            turtle.goto(self.pointfocal([0,0,0]))
+            turtle.pendown()
+            turtle.goto(self.pointfocal([0,0,l]))
+            turtle.penup()
+        else:
+            print('坐标系轴仅可在透视模式显示')
+    
+
+    def done(self):
+        turtle.hideturtle()
+        turtle.done()
+
+    def drawline(self,l):#l=[[[x,x],[x,x],'#xxxxxx']
+        turtle.pensize = self.pensize
+        turtle.color(l[1])
+        if self.type == 1:
+            turtle.goto(self.pointfocal(l[0][0])),
+            turtle.pendown()
+            turtle.goto(self.pointfocal(l[0][1])),
+            turtle.penup()
+        else:
+            turtle.goto(self.pointcabinet(l[0][0])),
+            turtle.pendown()
+            turtle.goto(self.pointcabinet(l[0][1])),
+            turtle.penup()
+
+    def drawface(self,f):
+        turtle.pensize = self.pensize
+        turtle.color(f[1])
+        if self.type == 1:
+            if self.rend == 1:
+                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
+                    turtle.color(self.multiply(f[1]))
+            turtle.goto(self.pointfocal(f[0][0])),
+            self.pointfocal(f[0][0])#???
+            turtle.begin_fill()
+            for i in range(len(f[0])):
+                turtle.goto(self.pointfocal(f[0][i])),
+            turtle.end_fill()
+            turtle.penup()
+        else:
+            turtle.goto(self.pointcabinet(f[0][0])),
+            self.pointcabinet(f[0][0])
+            turtle.begin_fill()
+            for i in range(len(f[0])):
+                turtle.goto(self.pointcabinet(f[0][i])),
+            turtle.end_fill()
+            turtle.penup()
+
+    def draw_from_scene(self,sce):
+        for i in sce:
+            if len(i[0]) == 2:
+                self.drawline(i)
+            else:
+                self.drawface(i)
+
+    def normalvect(self,vector,point1,point2,point3):
+        vector1 = (
+            point2[0] - point1[0],
+            point2[1] - point1[1], 
+            point2[2] - point1[2]
+        )
+        vector2 = (
+            point3[0] - point2[0],
+            point3[1] - point2[1],
+            point3[2] - point2[2]
+        )
+        cross_product = (
+            vector1[1] * vector2[2] - vector1[2] * vector2[1],
+            vector1[2] * vector2[0] - vector1[0] * vector2[2],
+            vector1[0] * vector2[1] - vector1[1] * vector2[0]
+        )
+        dot_product = (
+            cross_product[0] * vector[0] +
+            cross_product[1] * vector[1] +
+            cross_product[2] * vector[2]
+        )
+        if dot_product > 0:
+            return True
+        else:
+            return False
+        
+    def multiply(self,color):
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip('#')
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        def rgb_to_hex(rgb):
+            return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+        r, g, b = hex_to_rgb(color)
+        new_r = (r * self.shade_value) // 255
+        new_g = (g * self.shade_value) // 255
+        new_b = (b * self.shade_value) // 255
+        return rgb_to_hex((new_r, new_g, new_b))
+
+class scene():
+    def __init__(self):
+        self.line = []
+        self.face = []
+    
+    def addline(self,l):#[[x,x,x],[x,x,x],'#xxxxxx']
+        self.line.append([[l[0],l[1]],l[2]])
+
+    def addface(self,f):#[[x,x,x],[x,x,x],[x,x,x],'#xxxxxx']
+        t_face = []
+        for i in range(len(f)-1):
+            t_face.append(f[i])
+        self.face.append(t_face,f[-1])
+
+    def import_line(self,path):
+        with open(path,'r',encoding='utf-8') as f:
+            line = f.read().split('\n')
+        for i in line:
+            if i != '':
+                tempi = i.split(',')
+                self.line.append([[[float(tempi[0]),float(tempi[1]),float(tempi[2])],
+                                   [float(tempi[3]),float(tempi[4]),float(tempi[5])]],
+                                   tempi[6]])
+    
+    def import_face(self,path):
+        with open(path,'r',encoding='utf-8') as f:
+            line = f.read().split('\n')
+        for i in line:
+            if i != '':
+                tempi = i.split(',')
+                tempj = []
+                for j in range(len(tempi)//3):
+                    tempj.append([float(tempi[3*j]),float(tempi[3*j+1]),float(tempi[3*j+2])])
+                self.face.append([tempj,tempi[-1]])
+    
+    def export_line(self,path):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        a = ''
+        for i in self.line:
+            for j in i[0]:
+                for k in j:
+                    a += str(k) + ','
+            a += str(i[1]) + '\n'
+        with open(path,'w',encoding='utf-8') as f:
+            f.write(a)
+    def export_face(self,path):
+        a = ''
+        for i in self.face:
+            for j in i[0]:
+                for k in j:
+                    a += str(k) + ','
+            a += str(i[1]) + '\n'
+        with open(path,'w',encoding='utf-8') as f:
+            f.write(a)
+    
+    def sort_line_min(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        diatance = []
+        for i in self.line:
+            dis = (i[0][0][0]-camera_pos[0])**2+(i[0][0][1]-camera_pos[1])**2+(i[0][0][2]-camera_pos[2])**2
+            for j in i[0]:
+                t_dis = (j[0]-camera_pos[0])**2+(j[0]-camera_pos[1])**2+(j[0]-camera_pos[2])**2
+                if t_dis < dis:
+                    dis = t_dis
+            diatance.append(dis)
+        self.line = [x for _, x in sorted(zip(diatance, self.line), reverse=True)]
+
+    def sort_face_min(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        diatance = []
+        dis = (self.face[0][0][0][0]-camera_pos[0])**2+(self.face[0][0][0][1]-camera_pos[1])**2+(self.face[0][0][0][2]-camera_pos[2])**2
+        for i in self.face:
+            for j in i[0]:
+                t_dis = (j[0]-camera_pos[0])**2+(j[0]-camera_pos[1])**2+(j[0]-camera_pos[2])**2
+                if t_dis < dis:
+                    dis = t_dis
+            diatance.append(dis)
+        self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
+    
+    def sort_line_avg(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        diatance = []
+        for i in self.line:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        self.line = [x for _, x in sorted(zip(diatance, self.line), reverse=True)]
+
+    def sort_face_avg(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        diatance = []
+        for i in self.face:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
+    
+    def sort_line_cabin(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        camera_pos = [999999,-999999,999999]
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        diatance = []
+        for i in self.line:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        self.line = [x for _, x in sorted(zip(diatance, self.line), reverse=True)]
+
+    def sort_face_cabin(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        camera_pos = [999999,-999999,999999]
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        diatance = []
+        for i in self.face:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
+    
+    def sort_all_avg(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        fl = []
+        for i in self.face:
+            fl.append(i)
+        for i in self.line:
+            fl.append(i)
+        diatance = []
+        for i in fl:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
+        return fl
+    def sort_all_cabin(self):
+        camera_pos = [999999,-999999,999999]
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        fl = []
+        for i in self.face:
+            fl.append(i)
+        for i in self.line:
+            fl.append(i)
+        diatance = []
+        for i in fl:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
+        return fl
+    
+if __name__ == '__main__':
+    pass
