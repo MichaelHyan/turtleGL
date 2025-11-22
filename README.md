@@ -23,6 +23,7 @@ import turtleGL
 camera = turtleGL.camera()#实例化摄像头对象
 camera.camera_position = [-101,-121,131]#相机位置
 camera.camera_direction = [1,1,-1]#相机方向
+camera.to_target([0,0,0])#相机看向目标点
 camera.camera_focal = 300#焦距
 camera.ray = [1,1,-1]#光照方向
 camera.type = 1#1 透视模式  0 斜二侧模式
