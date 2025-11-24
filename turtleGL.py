@@ -1,4 +1,4 @@
-'''--- turtleGL v1.0.0 ---'''
+'''--- turtleGL v1.0.2 ---'''
 '''---     by Hyan     ---'''
 import numpy as np
 import turtle
@@ -18,6 +18,17 @@ class camera():
         turtle.tracer(0)
         turtle.hideturtle()
 
+    def status(self):
+        print('=================================')
+        print(f'camera position : {self.camera_position}')
+        print(f'camera direction : {self.camera_direction}')
+        print(f'camera focal : {self.camera_focal}')
+        print(f'ray direction : {self.ray}')
+        print(f'using rend : {self.rend}')
+        print(f'shade value : {self.shade_value}')
+        print(f'type : {'focal' if self.type == 1 else 'cabin'}')
+        print('=================================')
+
     def tracer(self, t):
         turtle.tracer(t)
 
@@ -27,10 +38,10 @@ class camera():
     def pointfocal(self, point_3d):
         position = [self.camera_position[0],self.camera_position[2],self.camera_position[1]]
         direction = [self.camera_direction[0],self.camera_direction[2],self.camera_direction[1]]
-        point_3d[-1],point_3d[-2] = point_3d[-2],point_3d[-1]
+        point = [point_3d[0],point_3d[2],point_3d[1]]
         cam_pos = np.array(position)
         cam_dir = np.array(direction)
-        point_3d = np.array(point_3d)
+        point = np.array(point)
         cam_dir = cam_dir / np.linalg.norm(cam_dir)
         z_axis = cam_dir
         z_axis = z_axis / np.linalg.norm(z_axis)
@@ -45,7 +56,7 @@ class camera():
         view_matrix[0, 3] = -np.dot(x_axis, cam_pos)
         view_matrix[1, 3] = -np.dot(y_axis, cam_pos)
         view_matrix[2, 3] = -np.dot(z_axis, cam_pos)
-        point_homo = np.append(point_3d, 1)
+        point_homo = np.append(point, 1)
         point_cam = view_matrix @ point_homo
         if point_cam[2] <= 0:
             return [0,0]
@@ -75,9 +86,8 @@ class camera():
             turtle.goto(self.pointfocal([0,0,l]))
             turtle.penup()
         else:
-            print('坐标系轴仅可在透视模式显示')
+            pass
     
-
     def done(self):
         turtle.hideturtle()
         turtle.done()
@@ -86,14 +96,14 @@ class camera():
         turtle.pensize = self.pensize
         turtle.color(l[1])
         if self.type == 1:
-            turtle.goto(self.pointfocal(l[0][0])),
+            turtle.goto(self.pointfocal(l[0][0]))
             turtle.pendown()
-            turtle.goto(self.pointfocal(l[0][1])),
+            turtle.goto(self.pointfocal(l[0][1]))
             turtle.penup()
         else:
-            turtle.goto(self.pointcabinet(l[0][0])),
+            turtle.goto(self.pointcabinet(l[0][0]))
             turtle.pendown()
-            turtle.goto(self.pointcabinet(l[0][1])),
+            turtle.goto(self.pointcabinet(l[0][1]))
             turtle.penup()
 
     def drawface(self,f):
@@ -103,19 +113,19 @@ class camera():
             if self.rend == 1:
                 if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
                     turtle.color(self.multiply(f[1]))
-            turtle.goto(self.pointfocal(f[0][0])),
+            turtle.goto(self.pointfocal(f[0][0]))
             self.pointfocal(f[0][0])#???
             turtle.begin_fill()
             for i in range(len(f[0])):
-                turtle.goto(self.pointfocal(f[0][i])),
+                turtle.goto(self.pointfocal(f[0][i]))
             turtle.end_fill()
             turtle.penup()
         else:
-            turtle.goto(self.pointcabinet(f[0][0])),
+            turtle.goto(self.pointcabinet(f[0][0]))
             self.pointcabinet(f[0][0])
             turtle.begin_fill()
             for i in range(len(f[0])):
-                turtle.goto(self.pointcabinet(f[0][i])),
+                turtle.goto(self.pointcabinet(f[0][i]))
             turtle.end_fill()
             turtle.penup()
 
@@ -163,6 +173,18 @@ class camera():
         new_g = (g * self.shade_value) // 255
         new_b = (b * self.shade_value) // 255
         return rgb_to_hex((new_r, new_g, new_b))
+    
+    def delay(self,time):
+        turtle.delay(time)
+    
+    def clear(self):
+        turtle.clear()
+
+    def bgcolor(self,color):
+        turtle.bgcolor(color)
+
+    def update(self):
+        turtle.update()
 
 class scene():
     def __init__(self):
@@ -208,6 +230,7 @@ class scene():
             a += str(i[1]) + '\n'
         with open(path,'w',encoding='utf-8') as f:
             f.write(a)
+
     def export_face(self,path):
         a = ''
         for i in self.face:
@@ -373,6 +396,7 @@ class scene():
             diatance.append(dis)
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
         return fl
+
     
 if __name__ == '__main__':
     pass
