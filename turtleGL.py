@@ -1,8 +1,8 @@
-'''--- turtleGL v1.0.2 ---'''
+'''--- turtleGL v1.0.3 ---'''
 '''---     by Hyan     ---'''
 import numpy as np
 import turtle
-import math
+import math,random
 class camera():
     def __init__(self):
         self.camera_position = [0, 0, 0]
@@ -10,8 +10,8 @@ class camera():
         self.camera_rotation = 0
         self.camera_focal = 1
         self.ray = [0,0,-1]
-        self.rend = 0 #0 材质预览 1 阴影 2 法线
-        self.shade_value = 128 #正片叠底系数
+        self.rend = 0
+        self.shade_value = 128
         self.pensize = 1
         self.pencolor = '#000000'
         self.type = 1
@@ -408,6 +408,185 @@ class scene():
 
     def reverse_normvect(self,i):
         self.face[i][0] = self.face[i][0][::-1]
+
+    def normalvect(self,vector,point1,point2,point3):
+        vector1 = (
+            point2[0] - point1[0],
+            point2[1] - point1[1], 
+            point2[2] - point1[2]
+        )
+        vector2 = (
+            point3[0] - point2[0],
+            point3[1] - point2[1],
+            point3[2] - point2[2]
+        )
+        cross_product = (
+            vector1[1] * vector2[2] - vector1[2] * vector2[1],
+            vector1[2] * vector2[0] - vector1[0] * vector2[2],
+            vector1[0] * vector2[1] - vector1[1] * vector2[0]
+        )
+        dot_product = (
+            cross_product[0] * vector[0] +
+            cross_product[1] * vector[1] +
+            cross_product[2] * vector[2]
+        )
+        if dot_product > 0:
+            return True
+        else:
+            return False
+
+    def import_obj(self,filename,scale=1,color=''):
+        def random_color():
+            r = random.randint(0, 255)
+            g = random.randint(0, 255)
+            b = random.randint(0, 255)
+            return f'#{r:02x}{g:02x}{b:02x}'
+        try:
+            vertices = []
+            faces = []
+            with open(filename, 'r') as file:
+                for line_num, line in enumerate(file, 1):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    parts = line.split()
+                    if not parts:
+                        continue
+                    if parts[0] == 'v':
+                        if len(parts) >= 4:
+                            try:
+                                x, y, z = map(float, parts[1:4])
+                                vertices.append((x, y, z))
+                            except ValueError:
+                                pass
+                    elif parts[0] == 'f':
+                        face_vertices = []
+                        for part in parts[1:]:
+                            vertex_info = part.split('/')[0]
+                            
+                            try:
+                                vertex_index = int(vertex_info)
+                                if vertex_index > 0:
+                                    adjusted_index = vertex_index - 1
+                                elif vertex_index < 0:
+                                    adjusted_index = len(vertices) + vertex_index
+                                else:
+                                    continue
+                                if 0 <= adjusted_index < len(vertices):
+                                    face_vertices.append(adjusted_index)
+                                else:
+                                    pass
+                            except ValueError:
+                                pass                    
+                        if len(face_vertices) >= 3:
+                            faces.append(face_vertices)
+                        else:
+                            pass
+            self.face = []
+            for i, face in enumerate(faces, 1):
+                face_temp = []
+                for j, vertex_idx in enumerate(face, 1):
+                    x, y, z = vertices[vertex_idx]
+                    face_temp.append([x*scale,z*scale,y*scale])
+                if color == '':
+                    self.face.append([face_temp,random_color()])
+                else:
+                    self.face.append([face_temp,color])
+        except FileNotFoundError:
+            return [], []
+        except Exception as e:
+            return [], []
+    def import_obj_normal(self,filename):
+        try:
+            vertices = []
+            vertex_normals = []
+            faces = []
+            face_normals = []
+            with open(filename, 'r') as file:
+                for line_num, line in enumerate(file, 1):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    parts = line.split()
+                    if not parts:
+                        continue
+                    if parts[0] == 'v':
+                        if len(parts) >= 4:
+                            try:
+                                x, y, z = map(float, parts[1:4])
+                                vertices.append((x, y, z))
+                            except ValueError:
+                                pass
+                    elif parts[0] == 'vn':
+                        if len(parts) >= 4:
+                            try:
+                                x, y, z = map(float, parts[1:4])
+                                vertex_normals.append((x, y, z))
+                            except ValueError:
+                                pass
+                    elif parts[0] == 'f':
+                        face_vertices = []
+                        face_normal_indices = []
+                        has_vertex_normals = False
+                        
+                        for part in parts[1:]:
+                            vertex_parts = part.split('/')
+                            try:
+                                vertex_index = int(vertex_parts[0])
+                                if vertex_index > 0:
+                                    adjusted_index = vertex_index - 1
+                                else:
+                                    adjusted_index = len(vertices) + vertex_index
+                                
+                                if 0 <= adjusted_index < len(vertices):
+                                    face_vertices.append(adjusted_index)
+                                else:
+                                    continue
+                            except ValueError:
+                                continue
+                            if len(vertex_parts) >= 3 and vertex_parts[2]:
+                                try:
+                                    normal_index = int(vertex_parts[2])
+                                    if normal_index > 0:
+                                        adjusted_normal_index = normal_index - 1
+                                    else:
+                                        adjusted_normal_index = len(vertex_normals) + normal_index
+                                    
+                                    if 0 <= adjusted_normal_index < len(vertex_normals):
+                                        face_normal_indices.append(adjusted_normal_index)
+                                        has_vertex_normals = True
+                                    else:
+                                        pass
+                                except ValueError:
+                                    pass
+                        if len(face_vertices) >= 3:
+                            faces.append(face_vertices)
+                            if has_vertex_normals and len(face_normal_indices) == len(face_vertices):
+                                avg_normal = np.array([0.0, 0.0, 0.0])
+                                for normal_idx in face_normal_indices:
+                                    avg_normal += np.array(vertex_normals[normal_idx])
+                                length = np.linalg.norm(avg_normal)
+                                if length > 0:
+                                    avg_normal = avg_normal / length
+                                face_normals.append(tuple(avg_normal))
+                            else:
+                                pass
+            norm = []
+            for i, (face, normal) in enumerate(zip(faces, face_normals), 1):
+                nx, ny, nz = normal
+                norm.append([nx,nz,ny])
+            return norm
+        except FileNotFoundError:
+            return [], [], []
+        except Exception as e:
+            return [], [], []
     
+    def check_obj_norm(self,path):
+        norm = self.import_obj_normal(path)
+        for i in range(len(self.face)):
+            if not self.normalvect(norm[i],self.face[i][0][0],self.face[i][0][1],self.face[i][0][2]):
+                self.face[i][0] = self.face[i][0][::-1]
+
+        
 if __name__ == '__main__':
     pass
