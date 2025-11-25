@@ -7,10 +7,11 @@ class camera():
     def __init__(self):
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
+        self.camera_rotation = 0
         self.camera_focal = 1
         self.ray = [0,0,-1]
-        self.rend = 0
-        self.shade_value = 128
+        self.rend = 0 #0 材质预览 1 阴影 2 法线
+        self.shade_value = 128 #正片叠底系数
         self.pensize = 1
         self.pencolor = '#000000'
         self.type = 1
@@ -22,9 +23,10 @@ class camera():
         print('=================================')
         print(f'camera position : {self.camera_position}')
         print(f'camera direction : {self.camera_direction}')
+        print(f'camera rotation : {self.camera_rotation}')
         print(f'camera focal : {self.camera_focal}')
         print(f'ray direction : {self.ray}')
-        print(f'using rend : {self.rend}')
+        print(f'using rend : {'material preview' if self.rend == 0 else 'shade' if self.rend == 1 else 'normal vector preview' if self.rend == 2 else self.rend}')
         print(f'shade value : {self.shade_value}')
         print(f'type : {'focal' if self.type == 1 else 'cabin'}')
         print('=================================')
@@ -62,8 +64,10 @@ class camera():
             return [0,0]
         u = (self.camera_focal * point_cam[0]) / point_cam[2]
         v = (self.camera_focal * point_cam[1]) / point_cam[2]
-        return np.array([u, v]).tolist()
-    
+        x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
+        y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
+        return [x,y]
+
     def pointcabinet(self, point_3d):
         return [point_3d[0]+0.5*point_3d[1]*math.cos(45), point_3d[2]+0.5*point_3d[1]*math.sin(45)]
     
@@ -113,6 +117,11 @@ class camera():
             if self.rend == 1:
                 if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
                     turtle.color(self.multiply(f[1]))
+            elif self.rend == 2:
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                    turtle.color('#FF0000')
+                else:
+                    turtle.color('#0000FF')
             turtle.goto(self.pointfocal(f[0][0]))
             self.pointfocal(f[0][0])#???
             turtle.begin_fill()
@@ -397,6 +406,8 @@ class scene():
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
         return fl
 
+    def reverse_normvect(self,i):
+        self.face[i][0] = self.face[i][0][::-1]
     
 if __name__ == '__main__':
     pass

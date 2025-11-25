@@ -1,3 +1,4 @@
+#示例代码 透视模式 旋转动画
 
 import turtleGL
 import math,time
