@@ -115,6 +115,7 @@ sort_all_cabin([相机坐标x,相机坐标y,相机坐标z])#返回调整后的�
 reverse_normvect(i)#修改第i个面数据的法向
 import_obj(path,缩放系数,颜色)#导入obj模型,颜色为空时随机上色
 check_obj_norm(path)#按照obj文件信息修正法向
+scene.generate_obj_line(颜色)#根据面数据生成边
 ```
 
 ##### 调整顺序
