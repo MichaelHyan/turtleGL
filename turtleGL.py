@@ -587,6 +587,15 @@ class scene():
             if not self.normalvect(norm[i],self.face[i][0][0],self.face[i][0][1],self.face[i][0][2]):
                 self.face[i][0] = self.face[i][0][::-1]
 
-        
+    def generate_obj_line(self,color='#000000'):
+        self.line = []
+        line_temp = []
+        for i in self.face:
+            for j in range(len(i[0])):
+                line_temp.append([[i[0][j%len(i[0])],i[0][(j+1)%len(i[0])]],color])
+        for i in line_temp:
+            if i not in self.line and [[i[0][1],i[0][0]],i[1]] not in self.line:
+                self.line.append(i)
+
 if __name__ == '__main__':
     pass
