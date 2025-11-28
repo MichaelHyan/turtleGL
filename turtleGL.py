@@ -1,8 +1,8 @@
-'''--- turtleGL v1.0.3 ---'''
+'''--- turtleGL v1.0.4 ---'''
 '''---     by Hyan     ---'''
 import numpy as np
-import turtle
-import math,random
+import turtle,math,random,cv2,os
+from PIL import ImageGrab
 class camera():
     def __init__(self):
         self.camera_position = [0, 0, 0]
@@ -596,6 +596,39 @@ class scene():
         for i in line_temp:
             if i not in self.line and [[i[0][1],i[0][0]],i[1]] not in self.line:
                 self.line.append(i)
+
+class vidtool():
+    def __init__(self,name):
+        self.name = name
+        try:
+            os.mkdir(name)
+        except:
+            pass
+    
+    def capture(self,i):
+        screenshot = ImageGrab.grab()
+        screenshot.save(f'{self.name}/{i:08d}.png')
+
+    def to_video(self,path = '',fps=30):
+        if path == '':
+            path = self.name
+        else:
+            path = path = f'{path}/{self.name}'
+        images = [img for img in os.listdir(path) if img.endswith(".png")]
+        if not images:
+            return
+        first_image = cv2.imread(os.path.join(path, images[0]))
+        height, width, layers = first_image.shape
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video = cv2.VideoWriter(f'{self.name}.mp4', fourcc, fps, (width, height))
+        images.sort()
+        for image in images:
+            image_path = os.path.join(path, image)
+            frame = cv2.imread(image_path)
+            video.write(frame)
+        video.release()
+        cv2.destroyAllWindows()
+        print('save complete')
 
 if __name__ == '__main__':
     pass
