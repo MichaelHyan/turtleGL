@@ -61,7 +61,8 @@ class camera():
         point_homo = np.append(point, 1)
         point_cam = view_matrix @ point_homo
         if point_cam[2] <= 0:
-            return [0,0]
+            pass
+            #return [0,0]
         u = (self.camera_focal * point_cam[0]) / point_cam[2]
         v = (self.camera_focal * point_cam[1]) / point_cam[2]
         x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
