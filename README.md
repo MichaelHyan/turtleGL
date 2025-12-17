@@ -35,7 +35,7 @@ rend#渲染类型 0 材质预览 1 阴影模式 2 法线预览
 shade_value#正片叠底系数 0-255
 pensize#画笔大小，只对线生效
 pencolor#画笔颜色，只对线生效
-type#相机类型 0 斜2侧模式 1 透视模式
+type#相机类型 0 斜2侧模式 1 透视模式 2 等距模式
 ```
 
 ##### 材质预览模式
@@ -55,6 +55,10 @@ type#相机类型 0 斜2侧模式 1 透视模式
 #### 摄像头方法
 
 ```python
+setposition([x,y,z])#设置摄像头位置，也可直接设置camera_position属性
+setdirection([x,y,z])#设置摄像头方向，也可直接设置camera_direction属性
+setfocal(x):#设置摄像头焦距，也可直接设置camera_focal属性
+settype(x):#设置摄像头类型，也可直接设置type属性
 status()#输出当前摄像头属性
 tracer(0)#关闭动画，直接操作turtle
 to_target([x,y,z])#设置摄像头面向目标点
@@ -106,12 +110,15 @@ export_line(path)#导出线数据 csv
 export_face(path)#导出面数据 csv
 import_line(path)#导入线数据
 import_face(path)#导入面数据
-sort_line_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式下调整图层顺序，直接修改场景对象属性
-sort_face_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式下调整图层顺序，直接修改场景对象属性
+sort_line_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式下调整图层顺序，修改场景对象属性并返回调整后数据
+sort_face_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式下调整图层顺序，修改场景对象属性并返回调整后数据
 sort_all_avg([相机坐标x,相机坐标y,相机坐标z])#返回调整后的所有数据，不修改场景对象属性
-sort_line_cabin([相机坐标x,相机坐标y,相机坐标z])#斜二侧模式下调整图层顺序，直接修改场景对象属性
-sort_face_cabin([相机坐标x,相机坐标y,相机坐标z])#斜二侧模式下调整图层顺序，直接修改场景对象属性
-sort_all_cabin([相机坐标x,相机坐标y,相机坐标z])#返回调整后的所有数据，不修改场景对象属性
+sort_line_cabin()#斜二侧模式下调整图层顺序，修改场景对象属性并返回调整后数据
+sort_face_cabin()#斜二侧模式下调整图层顺序，修改场景对象属性并返回调整后数据
+sort_all_cabin()#返回调整后的所有数据，不修改场景对象属性
+sort_line_isometric()#等距模式下调整图层顺序，修改场景对象属性并返回调整后数据
+sort_face_isometric()#等距模式下调整图层顺序，修改场景对象属性并返回调整后数据
+sort_all_isometric()#返回调整后的所有数据，不修改场景对象属性
 reverse_normvect(i)#修改第i个面数据的法向
 import_obj(path,缩放系数,颜色)#导入obj模型,颜色为空时随机上色
 check_obj_norm(path)#按照obj文件信息修正法向
@@ -127,6 +134,39 @@ scene.generate_obj_line(颜色)#根据面数据生成边
 ##### obj模型
 
 导入后直接作用到scene.face，一次只能导入一个物体，物体名必须为英文。
+
+#### 3D函数图像
+
+和场景对象操作类似，但数据生成依赖目标函数。
+
+包含线、面数据，绘制范围，采样步长。
+
+##### 函数方法
+
+假设使用以下方式定义函数：
+
+```python
+def func(x,y):
+    #不知道操作了什么
+    return z
+```
+
+设置定义域(绘制范围)：
+
+```python
+scene.xlim = [x1,x2] #表示从x1开始采样直到x2
+scene.ylim = [y1,y2] #表示从y1开始采样直到y2
+scene.step = d #采样步长
+```
+
+生成图像：
+
+```python
+scene.generate_face(func)
+scene.generate_line(func)
+```
+
+其余操作与场景对象一致。
 
 #### 操作流程
 
