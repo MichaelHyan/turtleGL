@@ -1,7 +1,8 @@
-'''--- turtleGL v1.0.5 ---'''
+'''--- turtleGL v1.1.0 ---'''
 '''---     by Hyan     ---'''
 import numpy as np
 import turtle,math,random,cv2,os
+import torch
 from PIL import ImageGrab
 class camera():
     def __init__(self):
@@ -15,6 +16,8 @@ class camera():
         self.pensize = 1
         self.pencolor = '#000000'
         self.type = 1
+        self.grating_size = [500,400]
+        self.device = None
         turtle.penup()
         turtle.tracer(0)
         turtle.hideturtle()
@@ -58,36 +61,128 @@ class camera():
         self.camera_direction = [t[0]-self.camera_position[0],t[1]-self.camera_position[1],t[2]-self.camera_position[2]]
 
     def pointfocal(self, point_3d):
-        position = [self.camera_position[0],self.camera_position[2],self.camera_position[1]]
-        direction = [self.camera_direction[0],self.camera_direction[2],self.camera_direction[1]]
-        point = [point_3d[0],point_3d[2],point_3d[1]]
-        cam_pos = np.array(position)
-        cam_dir = np.array(direction)
-        point = np.array(point)
-        cam_dir = cam_dir / np.linalg.norm(cam_dir)
-        z_axis = cam_dir
-        z_axis = z_axis / np.linalg.norm(z_axis)
-        up = np.array([0, 1, 0])
-        x_axis = np.cross(up, z_axis)
-        x_axis = x_axis / np.linalg.norm(x_axis)
-        y_axis = np.cross(z_axis, x_axis)
-        view_matrix = np.eye(4)
-        view_matrix[0, :3] = x_axis
-        view_matrix[1, :3] = y_axis
-        view_matrix[2, :3] = z_axis
-        view_matrix[0, 3] = -np.dot(x_axis, cam_pos)
-        view_matrix[1, 3] = -np.dot(y_axis, cam_pos)
-        view_matrix[2, 3] = -np.dot(z_axis, cam_pos)
-        point_homo = np.append(point, 1)
-        point_cam = view_matrix @ point_homo
-        if point_cam[2] <= 0:
-            pass
-            #return [0,0]
-        u = (self.camera_focal * point_cam[0]) / point_cam[2]
-        v = (self.camera_focal * point_cam[1]) / point_cam[2]
-        x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
-        y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
-        return [x,y]
+        if self.device == None:
+            position = [self.camera_position[0],self.camera_position[2],self.camera_position[1]]
+            direction = [self.camera_direction[0],self.camera_direction[2],self.camera_direction[1]]
+            point = [point_3d[0],point_3d[2],point_3d[1]]
+            cam_pos = np.array(position)
+            cam_dir = np.array(direction)
+            point = np.array(point)
+            cam_dir = cam_dir / np.linalg.norm(cam_dir)
+            z_axis = cam_dir
+            z_axis = z_axis / np.linalg.norm(z_axis)
+            up = np.array([0, 1, 0])
+            x_axis = np.cross(up, z_axis)
+            x_axis = x_axis / np.linalg.norm(x_axis)
+            y_axis = np.cross(z_axis, x_axis)
+            view_matrix = np.eye(4)
+            view_matrix[0, :3] = x_axis
+            view_matrix[1, :3] = y_axis
+            view_matrix[2, :3] = z_axis
+            view_matrix[0, 3] = -np.dot(x_axis, cam_pos)
+            view_matrix[1, 3] = -np.dot(y_axis, cam_pos)
+            view_matrix[2, 3] = -np.dot(z_axis, cam_pos)
+            point_homo = np.append(point, 1)
+            point_cam = view_matrix @ point_homo
+            if point_cam[2] <= 0:
+                pass
+                #return [0,0]
+            u = (self.camera_focal * point_cam[0]) / point_cam[2]
+            v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
+            y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
+            return [x,y]
+        else:
+            device = self.device
+            position = torch.tensor([self.camera_position[0], self.camera_position[2], self.camera_position[1]], 
+                                  dtype=torch.float32, device=device)
+            direction = torch.tensor([self.camera_direction[0], self.camera_direction[2], self.camera_direction[1]], 
+                                    dtype=torch.float32, device=device)
+            point = torch.tensor([point_3d[0], point_3d[2], point_3d[1]], 
+                               dtype=torch.float32, device=device)
+            cam_pos = position
+            cam_dir = direction
+            cam_dir = cam_dir / torch.norm(cam_dir)
+            z_axis = cam_dir
+            z_axis = z_axis / torch.norm(z_axis)
+            up = torch.tensor([0, 1, 0], dtype=torch.float32, device=device)
+            x_axis = torch.linalg.cross(up, z_axis)
+            x_axis = x_axis / torch.norm(x_axis)
+            y_axis = torch.linalg.cross(z_axis, x_axis)
+            view_matrix = torch.eye(4, dtype=torch.float32, device=device)
+            view_matrix[0, :3] = x_axis
+            view_matrix[1, :3] = y_axis
+            view_matrix[2, :3] = z_axis
+            view_matrix[0, 3] = -torch.dot(x_axis, cam_pos)
+            view_matrix[1, 3] = -torch.dot(y_axis, cam_pos)
+            view_matrix[2, 3] = -torch.dot(z_axis, cam_pos)
+            point_homo = torch.cat([point, torch.tensor([1], dtype=torch.float32, device=device)])
+            point_cam = torch.mv(view_matrix, point_homo)
+            if point_cam[2] <= 0:
+                pass
+                # return [0,0]
+            u = (self.camera_focal * point_cam[0]) / point_cam[2]
+            v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            cos_r = torch.cos(torch.tensor(self.camera_rotation, dtype=torch.float32, device=device))
+            sin_r = torch.sin(torch.tensor(self.camera_rotation, dtype=torch.float32, device=device))
+            x = u * cos_r - v * sin_r
+            y = u * sin_r + v * cos_r
+            return [x.item(), y.item()]
+
+    def pointfocal_inverse(self, point_2d):
+        if self.device == None:
+            x, y = point_2d
+            u = x * math.cos(-self.camera_rotation) - y * math.sin(-self.camera_rotation)
+            v = x * math.sin(-self.camera_rotation) + y * math.cos(-self.camera_rotation)
+            position = [self.camera_position[0], self.camera_position[2], self.camera_position[1]]
+            direction = [self.camera_direction[0], self.camera_direction[2], self.camera_direction[1]]
+            cam_pos = np.array(position)
+            cam_dir = np.array(direction)
+            cam_dir = cam_dir / np.linalg.norm(cam_dir)
+            z_axis = cam_dir
+            up = np.array([0, 1, 0])
+            x_axis = np.cross(up, z_axis)
+            x_axis = x_axis / np.linalg.norm(x_axis)
+            y_axis = np.cross(z_axis, x_axis)
+            view_matrix_inv = np.eye(4)
+            view_matrix_inv[:3, 0] = x_axis
+            view_matrix_inv[:3, 1] = y_axis
+            view_matrix_inv[:3, 2] = z_axis
+            view_matrix_inv[:3, 3] = cam_pos
+            #point_cam = np.array([u * self.camera_focal, v * self.camera_focal, self.camera_focal, 1])
+            point_cam = np.array([u, v, self.camera_focal, 1])
+            point_world = view_matrix_inv @ point_cam
+            return [point_world[0], point_world[2], point_world[1]]
+        else:
+            device = self.device
+            x, y = point_2d
+            x = torch.tensor(x, dtype=torch.float32, device=device)
+            y = torch.tensor(y, dtype=torch.float32, device=device)
+            cos_r = torch.cos(torch.tensor(-self.camera_rotation, dtype=torch.float32, device=device))
+            sin_r = torch.sin(torch.tensor(-self.camera_rotation, dtype=torch.float32, device=device))
+            u = x * cos_r - y * sin_r
+            v = x * sin_r + y * cos_r
+            position = torch.tensor([self.camera_position[0], self.camera_position[2], self.camera_position[1]], 
+                                  dtype=torch.float32, device=device)
+            direction = torch.tensor([self.camera_direction[0], self.camera_direction[2], self.camera_direction[1]], 
+                                    dtype=torch.float32, device=device)
+            cam_pos = position
+            cam_dir = direction
+            cam_dir = cam_dir / torch.norm(cam_dir)
+            z_axis = cam_dir
+            up = torch.tensor([0, 1, 0], dtype=torch.float32, device=device)
+            x_axis = torch.linalg.cross(up, z_axis)
+            x_axis = x_axis / torch.norm(x_axis)
+            y_axis = torch.linalg.cross(z_axis, x_axis)
+            view_matrix_inv = torch.eye(4, dtype=torch.float32, device=device)
+            view_matrix_inv[:3, 0] = x_axis
+            view_matrix_inv[:3, 1] = y_axis
+            view_matrix_inv[:3, 2] = z_axis
+            view_matrix_inv[:3, 3] = cam_pos
+            point_cam = torch.tensor([u, v, self.camera_focal, 1], dtype=torch.float32, device=device)
+            point_world = torch.mv(view_matrix_inv, point_cam)
+            return [point_world[0].item(), point_world[2].item(), point_world[1].item()]
+
 
     def pointcabinet(self, point_3d):
         return [point_3d[0]+0.5*point_3d[1]*math.cos(45), point_3d[2]+0.5*point_3d[1]*math.sin(45)]
@@ -187,31 +282,158 @@ class camera():
             else:
                 self.drawface(i)
 
-    def normalvect(self,vector,point1,point2,point3):
-        vector1 = (
-            point2[0] - point1[0],
-            point2[1] - point1[1], 
-            point2[2] - point1[2]
-        )
-        vector2 = (
-            point3[0] - point2[0],
-            point3[1] - point2[1],
-            point3[2] - point2[2]
-        )
-        cross_product = (
-            vector1[1] * vector2[2] - vector1[2] * vector2[1],
-            vector1[2] * vector2[0] - vector1[0] * vector2[2],
-            vector1[0] * vector2[1] - vector1[1] * vector2[0]
-        )
-        dot_product = (
-            cross_product[0] * vector[0] +
-            cross_product[1] * vector[1] +
-            cross_product[2] * vector[2]
-        )
-        if dot_product > 0:
-            return True
+    def ray_triangle_intersect(self,point,ray,triangle_vertices):
+        if self.device == None:
+            epsilon = 1e-6
+            v0 = np.array([triangle_vertices[0][0], triangle_vertices[0][2], triangle_vertices[0][1]])
+            v1 = np.array([triangle_vertices[1][0], triangle_vertices[1][2], triangle_vertices[1][1]])
+            v2 = np.array([triangle_vertices[2][0], triangle_vertices[2][2], triangle_vertices[2][1]])
+            edge1 = v1 - v0
+            edge2 = v2 - v0
+            ray_direction = np.array([ray[0], ray[2], ray[1]])
+            ray_origin = np.array([point[0], point[2], point[1]])
+            pvec = np.cross(ray_direction, edge2)
+            det = np.dot(edge1, pvec)
+            if abs(det) < epsilon:
+                return False, None, None, None
+            inv_det = 1.0 / det
+            tvec = ray_origin - v0
+            u = np.dot(tvec, pvec) * inv_det
+            if u < 0.0 or u > 1.0:
+                return False, None, None, None
+            qvec = np.cross(tvec, edge1)
+            v = np.dot(ray_direction, qvec) * inv_det
+            if v < 0.0 or u + v > 1.0:
+                return False, None, None, None
+            t = np.dot(edge2, qvec) * inv_det
+            if t < epsilon:
+                return False, None, None, None
+            intersection_point = ray_origin + t * ray_direction
+            return True, intersection_point[0], intersection_point[2], intersection_point[1]
         else:
-            return False
+            device = self.device
+            epsilon = 1e-6
+            v0 = torch.tensor([float(triangle_vertices[0][0]), float(triangle_vertices[0][2]), float(triangle_vertices[0][1])], 
+                            dtype=torch.float32, device=device)
+            v1 = torch.tensor([float(triangle_vertices[1][0]), float(triangle_vertices[1][2]), float(triangle_vertices[1][1])], 
+                            dtype=torch.float32, device=device)
+            v2 = torch.tensor([float(triangle_vertices[2][0]), float(triangle_vertices[2][2]), float(triangle_vertices[2][1])], 
+                            dtype=torch.float32, device=device)
+            edge1 = v1 - v0
+            edge2 = v2 - v0
+            ray_direction = torch.tensor([float(ray[0]), float(ray[2]), float(ray[1])], 
+                                    dtype=torch.float32, device=device)
+            ray_origin = torch.tensor([float(point[0]), float(point[2]), float(point[1])], 
+                                    dtype=torch.float32, device=device)
+            pvec = torch.cross(ray_direction, edge2)
+            det = torch.dot(edge1, pvec)
+            if torch.abs(det) < epsilon:
+                return False, None, None, None
+            inv_det = 1.0 / det
+            tvec = ray_origin - v0
+            u = torch.dot(tvec, pvec) * inv_det
+            if u < 0.0 or u > 1.0:
+                return False, None, None, None
+            qvec = torch.cross(tvec, edge1)
+            v = torch.dot(ray_direction, qvec) * inv_det
+            if v < 0.0 or u + v > 1.0:
+                return False, None, None, None
+            t = torch.dot(edge2, qvec) * inv_det
+            if t < epsilon:
+                return False, None, None, None
+            intersection_point = ray_origin + t * ray_direction
+            return True, intersection_point[0].item(), intersection_point[2].item(), intersection_point[1].item()
+
+
+    def grating(self,face):
+        if self.rend == 0:
+            for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,1):
+                for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,1):
+                    [x,y,z] = self.pointfocal_inverse([i,j])
+                    ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
+                    for k in face:
+                        a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
+                        if a:
+                            turtle.goto(i,j)
+                            turtle.dot(2,k[1])
+                            continue
+                        else:
+                            pass
+        elif self.rend == 1:
+            for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,1):
+                for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,1):
+                    [x,y,z] = self.pointfocal_inverse([i,j])
+                    ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
+                    for k in face:
+                        a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
+                        if a:
+                            if not self.normalvect(self.ray,k[0][0],k[0][1],k[0][2]):
+                                rect_r = [-x for x in self.ray]
+                                mark = 0
+                                for m in face:
+                                    b,o,p,q = self.ray_triangle_intersect([t,u,v],rect_r,m[0])
+                                    if b and (m != k):
+                                        mark = 1
+                                        continue
+                                    else:
+                                        pass
+                                color = self.multiply(k[1]) if mark == 1 else k[1]
+                                turtle.goto(i,j)
+                                turtle.dot(2,color)
+                            else:
+                                turtle.goto(i,j)
+                                turtle.dot(2,self.multiply(k[1]))
+                                continue
+                        else:
+                            pass
+
+    def show_grating_limit(self,c='#000000'):
+        turtle.pencolor(c)
+        turtle.goto(self.grating_size[0]//2,self.grating_size[1]//2)
+        turtle.pendown()
+        turtle.goto(-1*self.grating_size[0]//2,self.grating_size[1]//2)
+        turtle.goto(-1*self.grating_size[0]//2,-1*self.grating_size[1]//2)
+        turtle.goto(self.grating_size[0]//2,-1*self.grating_size[1]//2)
+        turtle.goto(self.grating_size[0]//2,self.grating_size[1]//2)
+        turtle.penup()
+
+    def normalvect(self,vector,point1,point2,point3):
+        if self.device == None:
+            vector1 = (
+                point2[0] - point1[0],
+                point2[1] - point1[1], 
+                point2[2] - point1[2]
+            )
+            vector2 = (
+                point3[0] - point2[0],
+                point3[1] - point2[1],
+                point3[2] - point2[2]
+            )
+            cross_product = (
+                vector1[1] * vector2[2] - vector1[2] * vector2[1],
+                vector1[2] * vector2[0] - vector1[0] * vector2[2],
+                vector1[0] * vector2[1] - vector1[1] * vector2[0]
+            )
+            dot_product = (
+                cross_product[0] * vector[0] +
+                cross_product[1] * vector[1] +
+                cross_product[2] * vector[2]
+            )
+            if dot_product > 0:
+                return True
+            else:
+                return False
+        else:
+            device = self.device
+            vector = torch.tensor(vector, dtype=torch.float32, device=device)
+            point1 = torch.tensor(point1, dtype=torch.float32, device=device)
+            point2 = torch.tensor(point2, dtype=torch.float32, device=device)
+            point3 = torch.tensor(point3, dtype=torch.float32, device=device)
+            vector1 = point2 - point1
+            vector2 = point3 - point2
+            cross_product = torch.cross(vector1, vector2)
+            dot_product = torch.dot(cross_product, vector)
+            return bool(dot_product > 0)
         
     def multiply(self,color):
         def hex_to_rgb(hex_color):
@@ -526,6 +748,16 @@ class scene():
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
         return fl
 
+    def triangulation(self):
+        temp_face = []
+        for i in self.face:
+            if len(i[0]) > 3:
+                for j in range(len(i[0])-2):
+                    temp_face.append([[i[0][0],i[0][j+1],i[0][j+2]],i[1]])
+            else:
+                temp_face.append(i)
+        self.face = temp_face
+
     def reverse_normvect(self,i):
         self.face[i][0] = self.face[i][0][::-1]
 
@@ -708,7 +940,7 @@ class scene():
             if not self.normalvect(norm[i],self.face[i][0][0],self.face[i][0][1],self.face[i][0][2]):
                 self.face[i][0] = self.face[i][0][::-1]
 
-    def generate_obj_line(self,color='#000000'):
+    def generate_line(self,color='#000000'):
         self.line = []
         line_temp = []
         for i in self.face:
@@ -982,6 +1214,16 @@ class plot3d():
             diatance.append(dis)
         self.line = [x for _, x in sorted(zip(diatance, self.line), reverse=True)]
         return self.line
+
+    def triangulation(self):
+        temp_face = []
+        for i in self.face:
+            if len(i[0]) > 3:
+                for j in range(len(i[0])-2):
+                    temp_face.append([[i[0][0],i[0][j+1],i[0][j+2]],i[1]])
+            else:
+                temp_face.append(i)
+        self.face = temp_face
 
     def sort_face_isometric(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
         camera_pos = [-999999,-999999,999999]

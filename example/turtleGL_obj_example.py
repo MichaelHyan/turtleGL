@@ -11,7 +11,7 @@ scene = turtleGL.scene()
 path = 'test.obj'
 scene.import_obj(path,50,'#66ccff')
 scene.check_obj_norm(path)
-scene.generate_obj_line('#ffffff')
+scene.generate_line('#ffffff')
 camera.bgcolor('#000000')
 for i in range(3000):
     camera.clear()
