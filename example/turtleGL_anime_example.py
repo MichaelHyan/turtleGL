@@ -2,7 +2,7 @@
 
 import turtleGL
 import math,time
-camera = turtleGL.camera()
+camera = turtleGL.camera('turtleGL anime example')
 camera.camera_position = [-101,-121,131]
 camera.camera_direction = [1,1,-1]
 camera.camera_focal = 300

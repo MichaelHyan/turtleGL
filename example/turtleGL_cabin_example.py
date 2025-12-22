@@ -29,7 +29,7 @@ scene.sort_face_cabin()#仅面
 scene.sort_all_cabin()#全部整理，直接返回结构化数据，不修改对象
 
 #相机对象
-camera = turtleGL.camera()
+camera = turtleGL.camera('turtleGL cabin example')
 #禁用阴影功能
 camera.rend = 0
 #斜二侧模式

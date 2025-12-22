@@ -1,5 +1,5 @@
 import turtleGL
-camera = turtleGL.camera()
+camera = turtleGL.camera('turtleGL plot3D example')
 camera.type = 0
 scene = turtleGL.plot3d()
 scene.xlim = [-100,100]

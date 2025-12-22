@@ -5,7 +5,7 @@ import turtle,math,random,cv2,os
 import torch
 from PIL import ImageGrab
 class camera():
-    def __init__(self):
+    def __init__(self,title = 'turtleGL v1.1.0'):
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
         self.camera_rotation = 0
@@ -18,9 +18,22 @@ class camera():
         self.type = 1
         self.grating_size = [500,400]
         self.device = None
+        turtle.title(title)
         turtle.penup()
         turtle.tracer(0)
         turtle.hideturtle()
+
+    def title(self,s):
+        turtle.title(s)
+
+    def write(self,point,str,move=False,align='left',font=("Arial", 12, "bold")):
+        if self.type == 0:
+            turtle.goto(self.pointcabinet(point))
+        elif self.type == 1:
+            turtle.goto(self.pointfocal(point))
+        elif self.type == 2:
+            turtle.goto(self.pointisometric(point))
+        turtle.write(str,move=move,align=align,font=font)
 
     def setposition(self,a):
         self.camera_position = a

@@ -2,7 +2,7 @@
 
 import turtleGL
 #透视模式需先定义相机
-camera = turtleGL.camera()
+camera = turtleGL.camera('turtleGL from file example')
 camera.camera_position = [-101,-121,131]#相机位置
 camera.camera_direction = [1,1,-1]#相机方向
 camera.camera_focal = 300#焦距
