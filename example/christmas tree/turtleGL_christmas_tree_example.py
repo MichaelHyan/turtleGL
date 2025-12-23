@@ -33,14 +33,14 @@ for i in scene.face:
 for i in scene.line:
     tree_line.append(i)
 scene.import_obj('tree3.obj',45,"#4b60ff")
-scene.check_obj_norm('tree2.obj')
+scene.check_obj_norm('tree3.obj')
 scene.generate_line("#14006D")
 for i in scene.face:
     tree_face.append(i)
 for i in scene.line:
     tree_line.append(i)
 scene.import_obj('tree4.obj',50,"#ffff00")
-scene.check_obj_norm('tree2.obj')
+scene.check_obj_norm('tree4.obj')
 scene.generate_line("#6A7300")
 for i in scene.face:
     tree_face.append(i)
