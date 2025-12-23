@@ -37,12 +37,8 @@ while True:
     camera.camera_position = [150*math.cos(i/s/math.pi),150*math.sin(i/s/math.pi),100*math.sin(i/s/math.pi)+50]
     camera.to_target([0,0,50])
     camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
-    '''scene.sort_face_avg(camera.camera_position)
-    for j in scene.face:
-        camera.drawface(j)
-    scene.sort_line_avg(camera.camera_position)
-    for j in scene.line:
-        camera.drawline(j)'''
+    #camera.draw_from_scene(scene.sort_face_avg(camera_pos=camera.camera_position))
+    #camera.draw_from_scene(scene.sort_line_avg(camera_pos=camera.camera_position))s
     camera.update()
     time.sleep(0.001)
     i+=1
