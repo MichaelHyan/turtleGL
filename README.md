@@ -207,6 +207,32 @@ camera.ray = [1,1,-1]#光照方向
 camera.type = 1#1 透视模式  0 斜二侧模式
 camera.rend = 1#0 材质预览 1 阴影 2 法线
 camera.status()#查看摄像头属性
+camera.device #硬件参数，赋值为torch创建的device时部分计算将改为使用gpu
+camera.grating_size = [500,400]#光栅模式 设置渲染区尺寸
+camera.image_size = [500,400]#导出图像尺寸
+camera.image #当前存储的图像
+```
+
+##### 图像导出
+
+由于turtle本身不具有图像截取功能，所以可以使用以下方法存储单帧图像。
+
+```python
+#截图前绘图区初始化
+camera.image_size = [500,400]
+camera.create_image('十六进制背景颜色')#可反复调用达到清屏效果
+
+#绘图
+camera.draw_from_scene_cv2(场景对象数据)#使用后暂存当前帧的图像
+
+#导出
+camera.imwrite('文件名')
+
+#视频处理
+#按序号截图
+camera.capture('名字',当前序号)#存储到.\文件名\序号:08d.png
+#合成视频
+camera.to_video('名字')
 ```
 
 #### 场景对象

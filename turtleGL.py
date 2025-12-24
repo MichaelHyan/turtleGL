@@ -1,11 +1,12 @@
-'''--- turtleGL v1.1.0 ---'''
+'''--- turtleGL v1.2.0 ---'''
 '''---     by Hyan     ---'''
 import numpy as np
 import turtle,math,random,cv2,os
 import torch
 from PIL import ImageGrab
 class camera():
-    def __init__(self,title = 'turtleGL v1.1.0'):
+    def __init__(self,title = 'turtleGL v1.2.0'):
+        self.title = title
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
         self.camera_rotation = 0
@@ -18,13 +19,12 @@ class camera():
         self.type = 1
         self.grating_size = [500,400]
         self.device = None
-        turtle.title(title)
+        self.image_size = [500,400]
+        self.image = []
+        turtle.title = title
         turtle.penup()
         turtle.tracer(0)
         turtle.hideturtle()
-
-    def title(self,s):
-        turtle.title(s)
 
     def write(self,point,str,move=False,align='left',font=("Arial", 12, "bold")):
         if self.type == 0:
@@ -34,6 +34,11 @@ class camera():
         elif self.type == 2:
             turtle.goto(self.pointisometric(point))
         turtle.write(str,move=move,align=align,font=font)
+
+    def create_image(self,bgcolor='#ffffff'):
+        color = bgcolor.lstrip('#')
+        color = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
+        self.image = np.full((self.image_size[1],self.image_size[0],3),color,dtype=np.uint8)
 
     def setposition(self,a):
         self.camera_position = a
@@ -287,13 +292,117 @@ class camera():
             turtle.penup()
         else:
             pass
-
+    
     def draw_from_scene(self,sce):
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline(i)
             else:
                 self.drawface(i)
+
+    def hex_to_bgr(self,hex_color):
+            hex_color = hex_color.lstrip('#')
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            return (rgb[2], rgb[1], rgb[0])
+    
+    def drawline_cv2(self,l):#l=[[[x,x],[x,x],'#xxxxxx']
+        turtle.pensize = self.pensize
+        turtle.color(l[1])
+        if self.type == 1:
+            point1 = list(map(int,self.pointfocal(l[0][0])))
+            point2 = list(map(int,self.pointfocal(l[0][1])))
+            point1[0] = point1[0] + self.image_size[0]//2
+            point1[1] = -1*point1[1] + self.image_size[1]//2
+            point2[0] = point2[0] + self.image_size[0]//2
+            point2[1] = -1*point2[1] + self.image_size[1]//2
+        elif self.type == 0:
+            point1 = list(map(int,self.pointcabinet(l[0][0])))
+            point2 = list(map(int,self.pointcabinet(l[0][1])))
+        elif self.type == 2:
+            point1 = list(map(int,self.pointisometric(l[0][0])))
+            point2 = list(map(int,self.pointisometric(l[0][1])))
+        else:
+            pass
+        cv2.line(self.image,
+                     point1,
+                     point2,
+                     self.hex_to_bgr(l[1]),
+                     self.pensize)
+
+    def drawface_cv2(self,f):
+        color = f[1]
+        if self.type == 1:
+            if self.rend == 1:
+                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
+                    color = self.multiply(f[1])
+            elif self.rend == 2:
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                    color = '#FF0000'
+                else:
+                    color = '#0000FF'
+            m = []
+            self.pointfocal(f[0][0])#???
+            for i in range(len(f[0])):
+                m.append(self.pointfocal(f[0][i]))
+            m = np.array(m,np.int32)
+            m *= [1,-1]
+            m += [self.image_size[0]//2,self.image_size[1]//2]
+            cv2.fillPoly(self.image,[m],self.hex_to_bgr(color))
+        elif self.type == 0:
+            m = []
+            self.pointcabinet(f[0][0])
+            for i in range(len(f[0])):
+                m.append(self.pointcabinet(f[0][i]))
+            m = np.array(m,np.int32)
+            m *= [1,-1]
+            m += [self.image_size[1]//2,self.image_size[0]//2]
+            cv2.fillPoly(self.image,[m],self.hex_to_bgr(color))
+        elif self.type == 2:
+            m = []
+            self.pointisometric(f[0][0])
+            for i in range(len(f[0])):
+                m.append(self.pointisometric(f[0][i]))
+            m = np.array(m,np.int32)
+            m *= [1,-1]
+            m += [self.image_size[1]//2,self.image_size[0]//2]
+            cv2.fillPoly(self.image,[m],self.hex_to_bgr(color))
+        else:
+            pass
+
+    def draw_from_scene_cv2(self,sce):
+        for i in sce:
+            if len(i[0]) == 2:
+                self.drawline_cv2(i)
+            else:
+                self.drawface_cv2(i)
+
+    def imshow(self):
+        cv2.imshow(self.title,self.image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    def imwrite(self,path):
+        cv2.imwrite(path,self.image)
+
+    def capture(self,path,i):
+        cv2.imwrite(f'{path}/{i:08d}.png',self.image)
+
+    def to_video(self,path,fps=30):
+        images = [img for img in os.listdir(path) if img.endswith(".png")]
+        if not images:
+            return
+        first_image = cv2.imread(os.path.join(path, images[0]))
+        height, width, layers = first_image.shape
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video = cv2.VideoWriter(f'{path}.mp4', fourcc, fps, (width, height))
+        images.sort()
+        for image in images:
+            image_path = os.path.join(path, image)
+            frame = cv2.imread(image_path)
+            video.write(frame)
+        video.release()
+        cv2.destroyAllWindows()
+        print('save complete')
 
     def ray_triangle_intersect(self,point,ray,triangle_vertices):
         if self.device == None:
@@ -357,7 +466,6 @@ class camera():
             intersection_point = ray_origin + t * ray_direction
             return True, intersection_point[0].item(), intersection_point[2].item(), intersection_point[1].item()
 
-
     def grating(self,face):
         if self.rend == 0:
             for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,1):
@@ -396,6 +504,46 @@ class camera():
                             else:
                                 turtle.goto(i,j)
                                 turtle.dot(2,self.multiply(k[1]))
+                                continue
+                        else:
+                            pass
+    
+    def grating_cv2(self,face):
+        if self.rend == 0:
+            for i in range(-1*self.image_size[0]//2,self.image_size[0]//2,1):
+                for j in range(-1*self.image_size[1]//2,self.image_size[1]//2,1):
+                    [x,y,z] = self.pointfocal_inverse([i,j])
+                    ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
+                    for k in face:
+                        a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
+                        if a:
+                            self.image[-j+self.image_size[1]//2,
+                                       i+self.image_size[0]//2] = self.hex_to_bgr(k[1])
+                            continue
+                        else:
+                            pass
+        elif self.rend == 1:
+            for i in range(-1*self.image_size[0]//2,self.image_size[0]//2,1):
+                for j in range(-1*self.image_size[1]//2,self.image_size[1]//2,1):
+                    [x,y,z] = self.pointfocal_inverse([i,j])
+                    ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
+                    for k in face:
+                        a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
+                        if a:
+                            if not self.normalvect(self.ray,k[0][0],k[0][1],k[0][2]):
+                                rect_r = [-x for x in self.ray]
+                                mark = 0
+                                for m in face:
+                                    b,o,p,q = self.ray_triangle_intersect([t,u,v],rect_r,m[0])
+                                    if b and (m != k):
+                                        mark = 1
+                                        continue
+                                    else:
+                                        pass
+                                color = self.multiply(k[1]) if mark == 1 else k[1]
+                                self.image[-j+self.image_size[1]//2,i+self.image_size[0]//2] = self.hex_to_bgr(color)
+                            else:
+                                self.image[-j+self.image_size[1]//2,i+self.image_size[0]//2] = self.hex_to_bgr(k[1])
                                 continue
                         else:
                             pass
@@ -476,7 +624,78 @@ class scene():
     def __init__(self):
         self.line = []
         self.face = []
+        self.center = [0,0,0]
     
+    def get_center(self):
+        c = [0,0,0]
+        count = 0
+        for i in self.face:
+            for j in i[0]:
+                c[0] += j[0]
+                c[1] += j[1]
+                c[2] += j[2]
+                count += 1
+        self.center = [x/count for x in c]
+        return self.center
+    
+    def rotate_point(self,rotation_vector,center,point):
+        rotation_vector = np.array([rotation_vector[0],
+                                    rotation_vector[2],
+                                    rotation_vector[1]], dtype=float)
+        center = np.array([center[0],
+                            center[2],
+                            center[1]], dtype=float)
+        point = np.array([point[0],
+                            point[2],
+                            point[1]], dtype=float)
+        theta = np.linalg.norm(rotation_vector)
+        if theta < 1e-10:
+            return point
+        axis = rotation_vector / theta
+        translated_point = point - center
+        K = np.array([
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0]
+        ])
+        I = np.eye(3)
+        R_matrix = I + np.sin(theta) * K + (1 - np.cos(theta)) * np.dot(K, K)
+        rotated_translated_point = np.dot(R_matrix, translated_point)        
+        rotated_point = rotated_translated_point + center
+        return [rotated_point[0],rotated_point[2],rotated_point[1]]
+
+    def rotate(self,rotate_vector,center=[0,0,0]):
+        for i in self.face:
+            for j in range(len(i[0])):
+                i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
+        for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
+
+    def move_point(self,move_vector,point):
+        return [point[0]+move_vector[0],point[1]+move_vector[1],point[2]+move_vector[2]]
+
+    def move(self,move_vector):
+        for i in self.face:
+            for j in range(len(i[0])):
+                i[0][j] = self.move_point(move_vector,i[0][j])
+        for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.move_point(move_vector,i[0][j])
+
+    def scale_point(self,scale_vector,center,point):
+        return [scale_vector[0]*(point[0]-center[0])+center[0],
+                scale_vector[1]*(point[1]-center[1])+center[1],
+                scale_vector[2]*(point[2]-center[2])+center[2]]
+
+    def scale(self,scale_vector,center=[0,0,0]):
+        for i in self.face:
+            for j in range(len(i[0])):
+                i[0][j] = self.scale_point(scale_vector,center,i[0][j])
+        for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.scale_point(scale_vector,center,i[0][j])
+
     def addline(self,l):#[[x,x,x],[x,x,x],'#xxxxxx']
         self.line.append([[l[0],l[1]],l[2]])
 
@@ -953,6 +1172,13 @@ class scene():
             if not self.normalvect(norm[i],self.face[i][0][0],self.face[i][0][1],self.face[i][0][2]):
                 self.face[i][0] = self.face[i][0][::-1]
 
+    def add_obj(self,filepath,scale=1,color=''):
+        temp = self.face
+        self.import_obj(filepath,scale,color)
+        self.check_obj_norm(filepath)
+        for i in temp:
+            self.face.append(i)
+
     def generate_line(self,color='#000000'):
         self.line = []
         line_temp = []
@@ -1003,6 +1229,7 @@ class plot3d():
         self.step = 1
         self.line = []
         self.face = []
+        self.center = [0,0,0]
     
     def generate_face(self,func,c=True):
         x = self.xlim[0]
@@ -1095,6 +1322,76 @@ class plot3d():
                  color
             ])
             y += ystep
+
+    def get_center(self):
+        c = [0,0,0]
+        count = 0
+        for i in self.face:
+            for j in i[0]:
+                c[0] += j[0]
+                c[1] += j[1]
+                c[2] += j[2]
+                count += 1
+        self.center = [x/count for x in c]
+        return self.center
+    
+    def rotate_point(self,rotation_vector,center,point):
+        rotation_vector = np.array([rotation_vector[0],
+                                    rotation_vector[2],
+                                    rotation_vector[1]], dtype=float)
+        center = np.array([center[0],
+                            center[2],
+                            center[1]], dtype=float)
+        point = np.array([point[0],
+                            point[2],
+                            point[1]], dtype=float)
+        theta = np.linalg.norm(rotation_vector)
+        if theta < 1e-10:
+            return point
+        axis = rotation_vector / theta
+        translated_point = point - center
+        K = np.array([
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0]
+        ])
+        I = np.eye(3)
+        R_matrix = I + np.sin(theta) * K + (1 - np.cos(theta)) * np.dot(K, K)
+        rotated_translated_point = np.dot(R_matrix, translated_point)        
+        rotated_point = rotated_translated_point + center
+        return [rotated_point[0],rotated_point[2],rotated_point[1]]
+
+    def rotate(self,rotate_vector,center=[0,0,0]):
+        for i in self.face:
+            for j in range(len(i[0])):
+                i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
+        for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
+
+    def move_point(self,move_vector,point):
+        return [point[0]+move_vector[0],point[1]+move_vector[1],point[2]+move_vector[2]]
+
+    def move(self,move_vector):
+        for i in self.face:
+            for j in range(len(i[0])):
+                i[0][j] = self.move_point(move_vector,i[0][j])
+        for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.move_point(move_vector,i[0][j])
+
+    def scale_point(self,scale_vector,center,point):
+        return [scale_vector[0]*(point[0]-center[0])+center[0],
+                scale_vector[1]*(point[1]-center[1])+center[1],
+                scale_vector[2]*(point[2]-center[2])+center[2]]
+
+    def scale(self,scale_vector,center=[0,0,0]):
+        for i in self.face:
+            for j in range(len(i[0])):
+                i[0][j] = self.scale_point(scale_vector,center,i[0][j])
+        for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.scale_point(scale_vector,center,i[0][j])
 
     def sort_line_min(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
         diatance = []

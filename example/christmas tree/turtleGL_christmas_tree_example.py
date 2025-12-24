@@ -50,17 +50,14 @@ for i in scene.line:
 scene.face = tree_face
 scene.line = tree_line
 
-#vid = turtleGL.vidtool('tree') #视频方法，慎用
-#time.sleep(5)
-camera.bgcolor("#000000")
-
-for i in range(1500):
-    camera.clear()
-    #camera.camera_position = [150*math.cos(math.radians(i)),150*math.sin(math.radians(i)),150*math.cos(math.radians(i))]
+time.sleep(5)
+camera.image_size = [600,700]
+camera.create_image('#000000')
+for i in range(1200):
+    camera.create_image('#000000')
     camera.camera_position = [150*math.cos(math.radians(i)),150*math.sin(math.radians(i)),150]
     camera.to_target([0,0,50])
-    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
-    camera.update()
-    #vid.capture(i) #视频方法，慎用
-
-#vid.to_video() #视频方法，慎用
+    camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position))
+    camera.capture('tree',i)
+    print(i)
+camera.to_video('tree')
