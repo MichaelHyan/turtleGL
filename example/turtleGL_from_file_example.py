@@ -1,5 +1,4 @@
 #示例代码 透视模式 从文件导入
-
 import turtleGL
 #透视模式需先定义相机
 camera = turtleGL.camera('turtleGL from file example')

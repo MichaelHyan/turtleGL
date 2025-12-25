@@ -1,5 +1,4 @@
 #示例代码 斜二侧模式
-
 import turtleGL
 #创建场景
 scene = turtleGL.scene()

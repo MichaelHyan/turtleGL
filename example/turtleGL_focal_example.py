@@ -1,5 +1,4 @@
 #示例代码 透视模式
-
 import turtleGL
 #透视模式需先定义相机
 camera = turtleGL.camera('turtleGL focal example')
