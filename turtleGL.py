@@ -1665,5 +1665,24 @@ class plot3d():
         else:
             return False
 
+def warning():
+    str='''
+============================================================
+|                   代码运行中，请勿触碰。                   |
+|                                                          |
+|              Code is running, do not touch.              |
+|                                                          |
+|         Code en cours d'exécution, ne pas toucher.       |
+|                                                          |
+|              Código en ejecución, no tocar.              |
+|                                                          |
+|            Код выполняется, не прикасайтесь.             |
+|                                                          |
+|               الكود قيد التشغيل، لا تلمس.               |
+============================================================
+'''
+    print(str)
+
+
 if __name__ == '__main__':
     pass
