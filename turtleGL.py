@@ -705,7 +705,7 @@ class scene():
         t_face = []
         for i in range(len(f)-1):
             t_face.append(f[i])
-        self.face.append(t_face,f[-1])
+        self.face.append([t_face,f[-1]])
 
     def import_line(self,path):
         with open(path,'r',encoding='utf-8') as f:
