@@ -671,6 +671,7 @@ class scene():
         for i in self.line:
             for j in range(len(i[0])):
                 i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
+        self.center = self.rotate_point(rotate_vector,center,self.center)
 
     def move_point(self,move_vector,point):
         return [point[0]+move_vector[0],point[1]+move_vector[1],point[2]+move_vector[2]]
@@ -682,6 +683,7 @@ class scene():
         for i in self.line:
             for j in range(len(i[0])):
                 i[0][j] = self.move_point(move_vector,i[0][j])
+        self.center = self.move_point(move_vector,self.center)
 
     def scale_point(self,scale_vector,center,point):
         return [scale_vector[0]*(point[0]-center[0])+center[0],
