@@ -1,16 +1,17 @@
-'''--- turtleGL v1.2.0 ---'''
+'''--- turtleGL v1.2.2 ---'''
 '''---     by Hyan     ---'''
 import numpy as np
 import turtle,math,random,cv2,os
 import torch
 from PIL import ImageGrab
 class camera():
-    def __init__(self,title = 'turtleGL v1.2.0'):
+    def __init__(self,title = 'turtleGL v1.2.2'):
         self.title = title
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
         self.camera_rotation = 0
         self.camera_focal = 1
+        self.point_behind_cam_type = 0
         self.ray = [0,0,-1]
         self.rend = 0
         self.shade_value = 128
@@ -66,10 +67,11 @@ class camera():
         print(f'camera direction : {self.camera_direction}')
         print(f'camera rotation : {self.camera_rotation}')
         print(f'camera focal : {self.camera_focal}')
+        print(f'point behind cam(focal mode): {'do nothing' if self.point_behind_cam_type == 0 else 'reverse uv' if self.point_behind_cam_type == 1 else 'switch to orthografic mode' if self.point_behind_cam_type == 2 else self.point_behind_cam_type}')
         print(f'ray direction : {self.ray}')
         print(f'using rend : {'material preview' if self.rend == 0 else 'shade' if self.rend == 1 else 'normal vector preview' if self.rend == 2 else self.rend}')
         print(f'shade value : {self.shade_value}')
-        print(f'type : {'focal' if self.type == 1 else 'cabin' if self.type == 0 else 'isometric' if self.type == 2 else self.type}')
+        print(f'type : {'focal' if self.type == 1 else 'cabin' if self.type == 0 else 'isometric' if self.type == 2 else 'orthografic' if self.type == -1 else self.type}')
         print('=================================')
 
     def tracer(self, t):
@@ -102,11 +104,19 @@ class camera():
             view_matrix[2, 3] = -np.dot(z_axis, cam_pos)
             point_homo = np.append(point, 1)
             point_cam = view_matrix @ point_homo
-            if point_cam[2] <= 0:
-                pass
-                #return [0,0]
-            u = (self.camera_focal * point_cam[0]) / point_cam[2]
-            v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            if point_cam[2] > 0:
+                u = (self.camera_focal * point_cam[0]) / point_cam[2]
+                v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            else:
+                if self.point_behind_cam_type == 0:#直接计算
+                    u = (self.camera_focal * point_cam[0]) / point_cam[2]
+                    v = (self.camera_focal * point_cam[1]) / point_cam[2]
+                elif self.point_behind_cam_type == 1:#uv取反
+                    u = (-1 * self.camera_focal * point_cam[0]) / point_cam[2]
+                    v = (-1 * self.camera_focal * point_cam[1]) / point_cam[2]
+                elif self.point_behind_cam_type == 2:#改为倍数正交透视
+                    u = self.camera_focal * point_cam[0]
+                    v = self.camera_focal * point_cam[1]
             x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
             y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
             return [x,y]
@@ -136,15 +146,23 @@ class camera():
             view_matrix[2, 3] = -torch.dot(z_axis, cam_pos)
             point_homo = torch.cat([point, torch.tensor([1], dtype=torch.float32, device=device)])
             point_cam = torch.mv(view_matrix, point_homo)
-            if point_cam[2] <= 0:
-                pass
-                # return [0,0]
-            u = (self.camera_focal * point_cam[0]) / point_cam[2]
-            v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            if point_cam[2] > 0:
+                u = (self.camera_focal * point_cam[0]) / point_cam[2]
+                v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            else:
+                if self.point_behind_cam_type == 0:
+                    u = (self.camera_focal * point_cam[0]) / point_cam[2]
+                    v = (self.camera_focal * point_cam[1]) / point_cam[2]
+                elif self.point_behind_cam_type == 1:
+                    u = (-1 * self.camera_focal * point_cam[0]) / point_cam[2]
+                    v = (-1 * self.camera_focal * point_cam[1]) / point_cam[2]
+                elif self.point_behind_cam_type == 2:
+                    u = self.camera_focal * point_cam[0]
+                    v = self.camera_focal * point_cam[1]
             cos_r = torch.cos(torch.tensor(self.camera_rotation, dtype=torch.float32, device=device))
             sin_r = torch.sin(torch.tensor(self.camera_rotation, dtype=torch.float32, device=device))
             x = u * cos_r - v * sin_r
-            y = u * sin_r + v * cos_r
+            y = u * sin_r + v * cos_r    
             return [x.item(), y.item()]
 
     def pointfocal_inverse(self, point_2d):
@@ -201,6 +219,70 @@ class camera():
             point_world = torch.mv(view_matrix_inv, point_cam)
             return [point_world[0].item(), point_world[2].item(), point_world[1].item()]
 
+    def pointorthografic(self, point_3d):
+        if self.device == None:
+            scale = self.camera_focal
+            position = [self.camera_position[0],self.camera_position[2],self.camera_position[1]]
+            direction = [self.camera_direction[0],self.camera_direction[2],self.camera_direction[1]]
+            point = [point_3d[0],point_3d[2],point_3d[1]]
+            cam_pos = np.array(position)
+            cam_dir = np.array(direction)
+            point = np.array(point)
+            cam_dir = cam_dir / np.linalg.norm(cam_dir)
+            z_axis = cam_dir
+            z_axis = z_axis / np.linalg.norm(z_axis)
+            up = np.array([0, 1, 0])
+            x_axis = np.cross(up, z_axis)
+            x_axis = x_axis / np.linalg.norm(x_axis)
+            y_axis = np.cross(z_axis, x_axis)
+            view_matrix = np.eye(4)
+            view_matrix[0, :3] = x_axis
+            view_matrix[1, :3] = y_axis
+            view_matrix[2, :3] = z_axis
+            view_matrix[0, 3] = -np.dot(x_axis, cam_pos)
+            view_matrix[1, 3] = -np.dot(y_axis, cam_pos)
+            view_matrix[2, 3] = -np.dot(z_axis, cam_pos)
+            point_homo = np.append(point, 1)
+            point_cam = view_matrix @ point_homo
+            u = scale * point_cam[0]
+            v = scale * point_cam[1]
+            x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
+            y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
+            return [x,y]
+        else:
+            device = self.device
+            scale = self.camera_focal
+            position = torch.tensor([self.camera_position[0], self.camera_position[2], self.camera_position[1]], 
+                                  dtype=torch.float32, device=device)
+            direction = torch.tensor([self.camera_direction[0], self.camera_direction[2], self.camera_direction[1]], 
+                                    dtype=torch.float32, device=device)
+            point = torch.tensor([point_3d[0], point_3d[2], point_3d[1]], 
+                               dtype=torch.float32, device=device)
+            cam_pos = position
+            cam_dir = direction
+            cam_dir = cam_dir / torch.norm(cam_dir)
+            z_axis = cam_dir
+            z_axis = z_axis / torch.norm(z_axis)
+            up = torch.tensor([0, 1, 0], dtype=torch.float32, device=device)
+            x_axis = torch.linalg.cross(up, z_axis)
+            x_axis = x_axis / torch.norm(x_axis)
+            y_axis = torch.linalg.cross(z_axis, x_axis)
+            view_matrix = torch.eye(4, dtype=torch.float32, device=device)
+            view_matrix[0, :3] = x_axis
+            view_matrix[1, :3] = y_axis
+            view_matrix[2, :3] = z_axis
+            view_matrix[0, 3] = -torch.dot(x_axis, cam_pos)
+            view_matrix[1, 3] = -torch.dot(y_axis, cam_pos)
+            view_matrix[2, 3] = -torch.dot(z_axis, cam_pos)
+            point_homo = torch.cat([point, torch.tensor([1], dtype=torch.float32, device=device)])
+            point_cam = torch.mv(view_matrix, point_homo)
+            u = scale * point_cam[0]
+            v = scale * point_cam[1]
+            cos_r = torch.cos(torch.tensor(self.camera_rotation, dtype=torch.float32, device=device))
+            sin_r = torch.sin(torch.tensor(self.camera_rotation, dtype=torch.float32, device=device))
+            x = u * cos_r - v * sin_r
+            y = u * sin_r + v * cos_r
+            return [x.item(), y.item()]
 
     def pointcabinet(self, point_3d):
         return [point_3d[0]+0.5*point_3d[1]*math.cos(45), point_3d[2]+0.5*point_3d[1]*math.sin(45)]
@@ -242,6 +324,11 @@ class camera():
             turtle.pendown()
             turtle.goto(self.pointfocal(l[0][1]))
             turtle.penup()
+        if self.type == -1:
+            turtle.goto(self.pointorthografic(l[0][0]))
+            turtle.pendown()
+            turtle.goto(self.pointorthografic(l[0][1]))
+            turtle.penup()
         elif self.type == 0:
             turtle.goto(self.pointcabinet(l[0][0]))
             turtle.pendown()
@@ -272,6 +359,22 @@ class camera():
             turtle.begin_fill()
             for i in range(len(f[0])):
                 turtle.goto(self.pointfocal(f[0][i]))
+            turtle.end_fill()
+            turtle.penup()
+        elif self.type == -1:
+            if self.rend == 1:
+                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
+                    turtle.color(self.multiply(f[1]))
+            elif self.rend == 2:
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                    turtle.color('#FF0000')
+                else:
+                    turtle.color('#0000FF')
+            turtle.goto(self.pointorthografic(f[0][0]))
+            self.pointorthografic(f[0][0])
+            turtle.begin_fill()
+            for i in range(len(f[0])):
+                turtle.goto(self.pointorthografic(f[0][i]))
             turtle.end_fill()
             turtle.penup()
         elif self.type == 0:
@@ -315,12 +418,27 @@ class camera():
             point1[1] = -1*point1[1] + self.image_size[1]//2
             point2[0] = point2[0] + self.image_size[0]//2
             point2[1] = -1*point2[1] + self.image_size[1]//2
+        if self.type == -1:
+            point1 = list(map(int,self.pointorthografic(l[0][0])))
+            point2 = list(map(int,self.pointorthografic(l[0][1])))
+            point1[0] = point1[0] + self.image_size[0]//2
+            point1[1] = -1*point1[1] + self.image_size[1]//2
+            point2[0] = point2[0] + self.image_size[0]//2
+            point2[1] = -1*point2[1] + self.image_size[1]//2
         elif self.type == 0:
             point1 = list(map(int,self.pointcabinet(l[0][0])))
             point2 = list(map(int,self.pointcabinet(l[0][1])))
+            point1[0] = point1[0] + self.image_size[0]//2
+            point1[1] = -1*point1[1] + self.image_size[1]//2
+            point2[0] = point2[0] + self.image_size[0]//2
+            point2[1] = -1*point2[1] + self.image_size[1]//2
         elif self.type == 2:
             point1 = list(map(int,self.pointisometric(l[0][0])))
             point2 = list(map(int,self.pointisometric(l[0][1])))
+            point1[0] = point1[0] + self.image_size[0]//2
+            point1[1] = -1*point1[1] + self.image_size[1]//2
+            point2[0] = point2[0] + self.image_size[0]//2
+            point2[1] = -1*point2[1] + self.image_size[1]//2
         else:
             pass
         cv2.line(self.image,
@@ -344,6 +462,23 @@ class camera():
             self.pointfocal(f[0][0])#???
             for i in range(len(f[0])):
                 m.append(self.pointfocal(f[0][i]))
+            m = np.array(m,np.int32)
+            m *= [1,-1]
+            m += [self.image_size[0]//2,self.image_size[1]//2]
+            cv2.fillPoly(self.image,[m],self.hex_to_bgr(color))
+        if self.type == -1:
+            if self.rend == 1:
+                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
+                    color = self.multiply(f[1])
+            elif self.rend == 2:
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                    color = '#FF0000'
+                else:
+                    color = '#0000FF'
+            m = []
+            self.pointorthografic(f[0][0])#???
+            for i in range(len(f[0])):
+                m.append(self.pointorthografic(f[0][i]))
             m = np.array(m,np.int32)
             m *= [1,-1]
             m += [self.image_size[0]//2,self.image_size[1]//2]
