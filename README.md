@@ -1,254 +1,244 @@
-## turtleGL
+## turtleGL-3d
 
-### 基于turtle库和赤石技术的3D绘图库
+### A 3D Drawing Library based on the turtle library
 
-面向对象，直观明了，赤石科技。
+### Data Structure
 
-### 使用方式
+Implemented using separate camera objects and scene objects.
 
-下载turtleGL.py，置于项目根目录。
+Scene objects can store data within themselves and can be specified and invoked by camera objects.
 
-导入
-```python
-import turtleGL
-```
+Multiple cameras can be used for flexible switching.
 
-### 数据结构
+#### Camera Attributes
 
-使用分离的摄像头对象、场景对象实现。
-
-场景对象可将数据存储于自身，可被摄像头对象指定并调用。
-
-可使用多个摄像头，灵活切换。
-
-#### 摄像头属性
-
-可直接为摄像头对象的属性重新赋值。
+You can directly reassign values to the attributes of the camera object.
 
 ```python
-camera_position#摄像头位置[x,y,z]，正上方向为[0,0,1]
-camera_direction#摄像头朝向[x,y,z]
-camera_rotation#摄像头旋转角，具体体现为左右倾斜，使用弧度角
-camera_focal#摄像头焦距
-point_behind_cam_type#背面点处理 0/1/2
-ray#光线方向，用于判断面是否面向光源
-rend#渲染类型 0 材质预览 1 阴影模式 2 法线预览
-shade_value#正片叠底系数 0-255
-pensize#画笔大小，只对线生效
-pencolor#画笔颜色，只对线生效
-type#相机类型 0 斜2侧模式 1 透视模式 2 等距模式 -1 正交模式
+camera_position# Camera position [x,y,z], positive up direction is [0,0,1]
+camera_direction# Camera facing direction [x,y,z]
+camera_rotation# Camera rotation angle, specifically manifested as left/right tilt, using radians
+camera_focal# Camera focal length
+point_behind_cam_type# Back point handling 0/1/2
+ray# Light ray direction, used to determine if a face is facing the light source
+rend# Render type 0 Material preview 1 Shadow mode 2 Normal preview
+shade_value# Multiply coefficient 0-255
+pensize# Pen size, effective only for lines
+pencolor# Pen color, effective only for lines
+type# Camera type 0 Cabinet projection 1 Perspective projection 2 Isometric projection -1 Orthographic projection
 ```
 
-点映射计算中无法正常计算摄像机背后的点，提供三种处理逻辑：
+In point mapping calculations, points behind the camera cannot be calculated normally; three handling logics are provided:
 
-0: 不做处理，背面点会出现在相反的方向
-1: 翻转uv，将点转回正常的方向
-2: 改为使用正交模式，偏差相对前两者较小
+0: No handling, back points will appear in the opposite direction
 
-##### 材质预览模式
+1: Flip UV, turning the point back to the normal direction
 
-面直接显示指定的颜色。
+2: Switch to using orthographic mode, deviation is relatively smaller than the previous two
 
-##### 阴影模式
+##### Material Preview Mode
 
-本项目暂不支持稳定的光栅算法，所以不存在光线计算。
+Faces directly display the specified color.
 
-启用阴影模式后，面数据将根据光线方向和法线夹角计算是否属于亮面，如否则使用正片叠底系数重计算表面颜色。
+##### Shadow Mode
 
-##### 法线模式
+This project does not currently support stable rasterization algorithms, so light ray calculations do not exist.
 
-显示法线，当摄像头方向与面法线余弦值大于0（即为钝角）时判定为正面，显示蓝色，反之显示红色。
+After enabling shadow mode, face data will calculate whether it belongs to a lit surface based on the angle between the light ray direction and the normal. If not, the multiply coefficient is used to recalculate the surface color.
 
-#### 摄像头方法
+##### Normal Mode
+
+Displays normals. When the cosine value between the camera direction and the face normal is greater than 0 (i.e., an obtuse angle), it is determined as the front face and displayed in blue; otherwise, it is displayed in red.
+
+##### Image Export
+
+Since turtle itself does not have image capture functionality, the following methods can be used to store single-frame images.
 
 ```python
-setposition([x,y,z])#设置摄像头位置，也可直接设置camera_position属性
-setdirection([x,y,z])#设置摄像头方向，也可直接设置camera_direction属性
-setfocal(x):#设置摄像头焦距，也可直接设置camera_focal属性
-settype(x):#设置摄像头类型，也可直接设置type属性
-status()#输出当前摄像头属性
-tracer(0)#关闭动画，直接操作turtle
-to_target([x,y,z])#设置摄像头面向目标点
-pointfocal([x,y,z])#透视模式下返回空间内坐标映射至摄像头的坐标
-pointcabinet([x,y,z])#斜二侧模式下返回空间内坐标映射至摄像头的坐标
-draw_axis(l)#画出基准坐标轴，l调节大小
-drawline(linedata)#输入单个边数据，绘制边
-drawface(facedata)#输入单个面坐标，绘制面
-draw_from_scene(scenedata)#输入整合数据，全部绘制
-delay()#延时，与turtle.delay()效果一致
-clear()#清除画布，与turtle.clear()效果一致
-bgcolor()#画布底色，与turtle.bgcolor()效果一致
-update()#更新画布，与turtle.update()效果一致
-done()#阻止自动关闭窗口，与turtle.done()效果一致
+# Drawing area initialization before screenshot
+camera.image_size = [500,400]
+camera.create_image('hex background color')# Can be called repeatedly to achieve clear screen effect
+
+# Drawing
+camera.draw_from_scene_cv2(scene object data)# Temporarily store current frame image after use
+
+# Export
+camera.imwrite('filename')
+
+# Video processing
+# Screenshot by sequence number
+camera.capture('name', current index)# Store to .\filename\index:08d.png
+# Compose video
+camera.to_video('name')
 ```
 
-#### 场景属性
+#### Camera Methods
 
-场景包含line、face属性，存储边/面数据。
+```python
+setposition([x,y,z])# Set camera position, can also directly set camera_position attribute
+setdirection([x,y,z])# Set camera direction, can also directly set camera_direction attribute
+setfocal(x):# Set camera focal length, can also directly set camera_focal attribute
+settype(x):# Set camera type, can also directly set type attribute
+status()# Output current camera attributes
+tracer(0)# Turn off animation, operate turtle directly
+to_target([x,y,z])# Set camera to face target point
+pointfocal([x,y,z])# In perspective mode, return coordinates mapped from space to camera
+pointcabinet([x,y,z])# In cabinet mode, return coordinates mapped from space to camera
+draw_axis(l)# Draw reference coordinate axes, l adjusts size
+drawline(linedata)# Input single edge data, draw edge
+drawface(facedata)# Input single face coordinates, draw face
+draw_from_scene(scenedata)# Input integrated data, draw all
+delay()# Delay, same effect as turtle.delay()
+clear()# Clear canvas, same effect as turtle.clear()
+bgcolor()# Canvas background color, same effect as turtle.bgcolor()
+update()# Update canvas, same effect as turtle.update()
+done()# Prevent automatic window closing, same effect as turtle.done()
+```
 
-可使用多个场景对象。
+#### Scene Attributes
 
-##### 数据格式
+The scene contains line and face attributes, storing edge/face data.
 
-```bash
+Multiple scene objects can be used.
+
+##### Data Format
+
+```python
 [
     [
-        [点1],
-        [点2],
+        [point1],
+        [point2],
         ...
-        [点n]
+        [pointn]
     ],
-    '十六进制颜色'
+    'hexadecimal color'
 ]
 ```
 
-点个数为2时会被识别为边。
+When the number of points is 2, it will be recognized as an edge.
 
-使用面数据时以法线射出方向为正，逆时针方向输入点。
+When using face data, the direction of the normal ray is considered positive, and points are input in a counter-clockwise direction.
 
-场景对象的line、face属性为包含以上数据的数组，每个元素为单独的线/面数据，可直接调用或修改。
+The line and face attributes of the scene object are arrays containing the above data; each element is separate line/face data and can be directly called or modified.
 
-#### 场景方法
+#### Scene Methods
 
 ```python
-addline([[x1,y1,z1],[x2,y2,z2],'16进制颜色'])#添加边
-addface([[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn],'16进制颜色'])#添加面
-export_line(path)#导出线数据 csv
-export_face(path)#导出面数据 csv
-import_line(path)#导入线数据
-import_face(path)#导入面数据
-sort_line_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式或正交模式下调整图层顺序，修改场景对象属性并返回调整后数据
-sort_face_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式或正交模式下调整图层顺序，修改场景对象属性并返回调整后数据
-sort_all_avg([相机坐标x,相机坐标y,相机坐标z])#返回调整后的所有数据，不修改场景对象属性
-sort_line_cabin()#斜二侧模式下调整图层顺序，修改场景对象属性并返回调整后数据
-sort_face_cabin()#斜二侧模式下调整图层顺序，修改场景对象属性并返回调整后数据
-sort_all_cabin()#返回调整后的所有数据，不修改场景对象属性
-sort_line_isometric()#等距模式下调整图层顺序，修改场景对象属性并返回调整后数据
-sort_face_isometric()#等距模式下调整图层顺序，修改场景对象属性并返回调整后数据
-sort_all_isometric()#返回调整后的所有数据，不修改场景对象属性
-reverse_normvect(i)#修改第i个面数据的法向
-import_obj(path,缩放系数,颜色)#导入obj模型,颜色为空时随机上色
-check_obj_norm(path)#按照obj文件信息修正法向
-scene.generate_obj_line(颜色)#根据面数据生成边
+addline([[x1,y1,z1],[x2,y2,z2],'hex color'])# Add edge
+addface([[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn],'hex color'])# Add face
+export_line(path)# Export line data csv
+export_face(path)# Export face data csv
+import_line(path)# Import line data
+import_face(path)# Import face data
+sort_line_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
+sort_face_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
+sort_all_avg([camera x, camera y, camera z])# Return all adjusted data, does not modify scene object attributes
+sort_line_cabin()# Adjust layer order in cabinet mode, modify scene object attributes and return adjusted data
+sort_face_cabin()# Adjust layer order in cabinet mode, modify scene object attributes and return adjusted data
+sort_all_cabin()# Return all adjusted data, does not modify scene object attributes
+sort_line_isometric()# Adjust layer order in isometric mode, modify scene object attributes and return adjusted data
+sort_face_isometric()# Adjust layer order in isometric mode, modify scene object attributes and return adjusted data
+sort_all_isometric()# Return all adjusted data, does not modify scene object attributes
+reverse_normvect(i)# Modify the normal direction of the i-th face data
+import_obj(path, scale factor, color)# Import obj model, random color if color is empty
+check_obj_norm(path)# Correct normal direction according to obj file information
+scene.generate_obj_line(color)# Generate edges based on face data
 ```
 
-##### 调整顺序
+##### Adjusting Order
 
-本项目暂不支持稳定的光栅算法，所以不存在光线计算。
+This project does not currently support stable rasterization algorithms, so light ray calculations do not exist.
 
-面前后顺序由图层和渲染顺序决定。
+The front/back order of faces is determined by the layer and rendering order.
 
-##### obj模型
+##### obj Model
 
-导入后直接作用到scene.face，一次只能导入一个物体，物体名必须为英文。
+Acts directly on scene.face after import. Only one object can be imported at a time, and the object name must be in English.
 
-#### 3D函数图像
+#### 3D Function Graphs
 
-和场景对象操作类似，但数据生成依赖目标函数。
+Similar to scene object operations, but data generation depends on the target function.
 
-包含线、面数据，绘制范围，采样步长。
+Includes line and face data, drawing range, and sampling step.
 
-##### 函数方法
+##### Function Methods
 
-假设使用以下方式定义函数：
+Assume the function is defined as follows:
 
 ```python
 def func(x,y):
-    #不知道操作了什么
+    # Unknown operations
     return z
 ```
 
-设置定义域(绘制范围)：
+Set the domain (drawing range):
 
 ```python
-scene.xlim = [x1,x2] #表示从x1开始采样直到x2
-scene.ylim = [y1,y2] #表示从y1开始采样直到y2
-scene.step = d #采样步长
+scene.xlim = [x1,x2] # Indicates sampling from x1 until x2
+scene.ylim = [y1,y2] # Indicates sampling from y1 until y2
+scene.step = d # Sampling step
 ```
 
-生成图像：
+Generate graph:
 
 ```python
 scene.generate_face(func)
 scene.generate_line(func)
 ```
 
-其余操作与场景对象一致。
+Other operations are consistent with scene objects.
 
-#### 操作流程
+##### Operation Flow
 
-1. 实例化摄像头对象
-2. 调整镜头属性
-3. 实例化场景对象
-4. 为场景对象添加数据
-5. 场景对象数据排序
-6. 使用摄像头对象调用数据
-7. 绘制
+1. Instantiate camera object
+2. Adjust lens attributes
+3. Instantiate scene object
+4. Add data to scene object
+5. Sort scene object data
+6. Use camera object to invoke data
+7. Draw
 
-### 测试功能：光栅算法
+### Test Feature: Rasterization Algorithm
 
-该功能尚不稳定，仅参考。
+This feature is not yet stable and is for reference only.
 
 ```python
-scene.triangulation()#面三角化，目前光栅模式只能处理三角面
-camera.grating_size = [x,y]#渲染区尺寸
-camera.show_grating_limit()#显示渲染区边缘
-camera.grating(face)#使用光栅算法计算
+scene.triangulation()# Face triangulation, currently raster mode can only handle triangular faces
+camera.grating_size = [x,y]# Rendering area size
+camera.show_grating_limit()# Display rendering area edges
+camera.grating(face)# Calculate using rasterization algorithm
 ```
 
-在渲染模式为1时不再使用阴影模式，而是计算光线路径。
+When render mode is 1, shadow mode is no longer used; instead, light ray paths are calculated.
 
-### 使用方式（示例）
+### Usage (Example)
 
-#### 摄像头对象
+#### Camera Object
 
-设置摄像头属性。
+Set camera attributes.
 
 ```python
-camera = turtleGL.camera()#实例化摄像头对象
-camera.camera_position = [-101,-121,131]#相机位置
-camera.camera_direction = [1,1,-1]#相机方向
-camera.to_target([0,0,0])#相机看向目标点
-camera.camera_focal = 300#焦距
-camera.ray = [1,1,-1]#光照方向
-camera.type = 1#1 透视模式  0 斜二侧模式
-camera.rend = 1#0 材质预览 1 阴影 2 法线
-camera.status()#查看摄像头属性
-camera.device #硬件参数，赋值为torch创建的device时部分计算将改为使用gpu
-camera.grating_size = [500,400]#光栅模式 设置渲染区尺寸
-camera.image_size = [500,400]#导出图像尺寸
-camera.image #当前存储的图像
+camera = turtleGL.camera()# Instantiate camera object
+camera.camera_position = [-101,-121,131]# Camera position
+camera.camera_direction = [1,1,-1]# Camera direction
+camera.to_target([0,0,0])# Camera looks at target point
+camera.camera_focal = 300# Focal length
+camera.ray = [1,1,-1]# Light direction
+camera.type = 1# 1 Perspective mode  0 Cabinet mode
+camera.rend = 1# 0 Material preview 1 Shadow 2 Normal
+camera.status()# View camera attributes
+camera.grating_size = [500,400]# Raster mode set rendering area size
+camera.image_size = [500,400]# Export image size
+camera.image # Current stored image
 ```
 
-##### 图像导出
+#### Scene Object
 
-由于turtle本身不具有图像截取功能，所以可以使用以下方法存储单帧图像。
-
-```python
-#截图前绘图区初始化
-camera.image_size = [500,400]
-camera.create_image('十六进制背景颜色')#可反复调用达到清屏效果
-
-#绘图
-camera.draw_from_scene_cv2(场景对象数据)#使用后暂存当前帧的图像
-
-#导出
-camera.imwrite('文件名')
-
-#视频处理
-#按序号截图
-camera.capture('名字',当前序号)#存储到.\文件名\序号:08d.png
-#合成视频
-camera.to_video('名字')
-```
-
-#### 场景对象
-
-使用结构化数据存储场景信息，分为线和面，直接储存在场景对象内，可调用。
+Use structured data to store scene information, divided into lines and faces, directly stored in the scene object and can be invoked.
 
 ```python
-scene = turtleGL.scene()#实例化场景
-#边信息自定义
+scene = turtleGL.scene()# Instantiate scene
+# Custom edge information
 scene.line = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0]], '#000000'], 
               [[[-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0]], '#000000'], 
               [[[-50.0, -50.0, 0.0], [50.0, -50.0, 0.0]], '#000000'], 
@@ -261,7 +251,7 @@ scene.line = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0]], '#000000'],
               [[[-50.0, 50.0, 0.0], [-50.0, 50.0, 100.0]], '#000000'], 
               [[[-50.0, -50.0, 0.0], [-50.0, -50.0, 100.0]], '#000000'], 
               [[[50.0, -50.0, 0.0], [50.0, -50.0, 100.0]], '#000000']]
-#面信息自定义
+# Custom face information
 scene.face = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0], [50.0, -50.0, 0.0]], '#FF0000'], 
               [[[50.0, 50.0, 0.0], [50.0, 50.0, 100.0], [50.0, -50.0, 100.0], [50.0, -50.0, 0.0]], '#0000FF'], 
               [[[-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0], [-50.0, -50.0, 100.0], [-50.0, 50.0, 100.0]], '#FFFF00'], 
@@ -270,29 +260,31 @@ scene.face = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0], [50.
               [[[-50.0, -50.0, 0.0], [50.0, -50.0, 0.0], [50.0, -50.0, 100.0], [-50.0, -50.0, 100.0]], '#00FFFF']]
 ```
 
-整理显示次序(以透视模式为例)
+Organize display order (taking perspective mode as an example)
 
 ```python
-scene.sort_line_avg(camera.camera_position)#仅边
-scene.sort_face_avg(camera.camera_position)#仅面
-scene.sort_all_avg(camera.camera_position)#全部整理，直接返回结构化数据，不修改对象
+scene.sort_line_avg(camera.camera_position)# Edges only
+scene.sort_face_avg(camera.camera_position)# Faces only
+scene.sort_all_avg(camera.camera_position)# Organize all, directly return structured data, does not modify object
 ```
 
-绘制
+Draw
+
 ```python
-camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))#绘制全部内容
-camera.draw_from_scene(scene.line)#绘制 仅边
-camera.draw_from_scene(scene.face)#绘制 仅面
-camera.draw_axis(10)#显示轴
+camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))# Draw all content
+camera.draw_from_scene(scene.line)# Draw edges only
+camera.draw_from_scene(scene.face)# Draw faces only
+camera.draw_axis(10)# Show axes
 camera.done()
 ```
 
-导入/导出
+Import/Export
+
 ```python
-#导出
+# Export
 scene.export_line('example_line.csv')
 scene.export_face('example_face.csv')
-#导入
+# Import
 scene.import_line('example_line.csv')
 scene.import_face('example_face.csv')
 ```

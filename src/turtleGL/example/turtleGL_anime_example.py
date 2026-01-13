@@ -33,7 +33,7 @@ scene.face = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0], [50.
 i = 0
 while True:
     camera.clear() #清空画布
-    camera.camera_position = [150*math.cos(math.radians(i)),150*math.sin(math.radians(i)),100*math.sin(math.radians(i))] #相机位置
+    camera.camera_position = [150*math.cos(math.radians(i)),150*math.sin(math.radians(i)),150*math.sin(math.radians(i))] #相机位置
     camera.to_target([0,0,50]) #相机指向
     camera.draw_from_scene(scene.sort_all_avg(camera.camera_position)) #绘制面和边
     #camera.draw_from_scene(scene.sort_face_avg(camera_pos=camera.camera_position)) #仅绘制面
