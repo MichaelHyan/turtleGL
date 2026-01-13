@@ -2,6 +2,12 @@
 
 ### A 3D Drawing Library based on the turtle library
 
+### Install
+
+```
+pip install TurtleGL-3d
+```
+
 ### Data Structure
 
 Implemented using separate camera objects and scene objects.
