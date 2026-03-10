@@ -1,7 +1,7 @@
 import numpy as np
 import turtle,math,cv2,os
 class camera():
-    def __init__(self,title = 'turtleGL v1.2.2'):
+    def __init__(self,title = 'turtleGL v1.2.3'):
         self.title = title
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
@@ -11,7 +11,7 @@ class camera():
         self.ray = [0,0,-1]
         self.rend = 0
         self.shade_value = 128
-        self.pensize = 1
+        self.pensize = 2
         self.pencolor = '#000000'
         self.type = 1
         self.grating_size = [500,400]
@@ -30,6 +30,15 @@ class camera():
         elif self.type == 2:
             turtle.goto(self.pointisometric(point))
         turtle.write(str,move=move,align=align,font=font)
+
+    def dot(self,point,color='#000000'):
+        if self.type == 0:
+            turtle.goto(self.pointcabinet(point))
+        elif self.type == 1:
+            turtle.goto(self.pointfocal(point))
+        elif self.type == 2:
+            turtle.goto(self.pointisometric(point))
+        turtle.dot(self.pensize,color)
 
     def create_image(self,bgcolor='#ffffff'):
         color = bgcolor.lstrip('#')

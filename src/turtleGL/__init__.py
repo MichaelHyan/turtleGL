@@ -16,3 +16,4 @@ limitations under the License.
 from .src.camera import camera
 from .src.scene import scene
 from .src.plot3d import plot3d
+from .src.volume import volume

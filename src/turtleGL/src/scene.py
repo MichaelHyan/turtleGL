@@ -54,6 +54,12 @@ class scene():
                 i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
         self.center = self.rotate_point(rotate_vector,center,self.center)
 
+    def rotate_edge(self):
+        def rotate_left(arr):
+            return arr[1:] + arr[:1]
+        for i in self.face:
+            i[0] = rotate_left(i[0])
+
     def move_point(self,move_vector,point):
         return [point[0]+move_vector[0],point[1]+move_vector[1],point[2]+move_vector[2]]
 

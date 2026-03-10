@@ -91,6 +91,7 @@ to_target([x,y,z])#设置摄像头面向目标点
 pointfocal([x,y,z])#透视模式下返回空间内坐标映射至摄像头的坐标
 pointcabinet([x,y,z])#斜二侧模式下返回空间内坐标映射至摄像头的坐标
 draw_axis(l)#画出基准坐标轴，l调节大小
+dot([x,y,z],可选参数颜色)#绘制单点，大小由pensize决定
 drawline(linedata)#输入单个边数据，绘制边
 drawface(facedata)#输入单个面坐标，绘制面
 draw_from_scene(scenedata)#输入整合数据，全部绘制
@@ -136,6 +137,7 @@ export_line(path)#导出线数据 csv
 export_face(path)#导出面数据 csv
 import_line(path)#导入线数据
 import_face(path)#导入面数据
+scene.rotate_edge()#循环边，用于生成不同的三角化划分
 sort_line_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式或正交模式下调整图层顺序，修改场景对象属性并返回调整后数据
 sort_face_avg([相机坐标x,相机坐标y,相机坐标z])#透视模式或正交模式下调整图层顺序，修改场景对象属性并返回调整后数据
 sort_all_avg([相机坐标x,相机坐标y,相机坐标z])#返回调整后的所有数据，不修改场景对象属性
@@ -193,6 +195,30 @@ scene.generate_line(func)
 ```
 
 其余操作与场景对象一致。
+
+#### 体积属性
+
+使用体积对象，单独场景面数据可分配给一个体积对象，和场景数据分离计算。
+
+体积使用射线法计算，仅在纯三角形的封闭图形下使用。
+
+体积计算返回了采样网格内所有位于图形内的点。
+
+```python
+points#数字，包含计算后的点
+sample_distance#采样网格间距(采样距离)
+grid_limit#分区加速算法界限，默认为正无穷，在三角形数量大于该值时启用
+check#布尔值，是否启用多向性检查
+allow_edge#布尔值，是否允许计入边界交点
+```
+
+分区加速算法不建议使用，该算法可能会在不规则图形计算中产生错误结果，仅在凸多面体下正常运行。
+
+#### 体积方法
+
+```python
+volume(场景面数据)#返回所有内部点，同时储存在points属性中
+```
 
 #### 操作流程
 

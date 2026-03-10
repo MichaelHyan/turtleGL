@@ -91,6 +91,7 @@ to_target([x,y,z])# Set camera to face target point
 pointfocal([x,y,z])# In perspective mode, return coordinates mapped from space to camera
 pointcabinet([x,y,z])# In cabinet mode, return coordinates mapped from space to camera
 draw_axis(l)# Draw reference coordinate axes, l adjusts size
+dot([x, y, z], optional color) # Draw a single point, the size is determined by pensize
 drawline(linedata)# Input single edge data, draw edge
 drawface(facedata)# Input single face coordinates, draw face
 draw_from_scene(scenedata)# Input integrated data, draw all
@@ -136,6 +137,7 @@ export_line(path)# Export line data csv
 export_face(path)# Export face data csv
 import_line(path)# Import line data
 import_face(path)# Import face data
+scene.rotate_edge()# Iterate over edges, used to generate different triangulations
 sort_line_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
 sort_face_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
 sort_all_avg([camera x, camera y, camera z])# Return all adjusted data, does not modify scene object attributes
@@ -193,6 +195,30 @@ scene.generate_line(func)
 ```
 
 Other operations are consistent with scene objects.
+
+#### Volume Properties
+
+Using a volume object, individual scene face data can be assigned to a volume object for separate calculation from the scene data.
+
+Volume calculation uses the ray casting method and is intended for use only with closed shapes composed purely of triangles.
+
+The volume calculation returns all points located within the shape within the sampling grid.
+
+```python
+points          # Number, contains the calculated points
+sample_distance # Sampling grid spacing (sampling distance)
+grid_limit      # Partition acceleration algorithm limit, defaults to positive infinity; enabled when the number of triangles exceeds this value
+check           # Boolean, whether to enable multi-directional check
+allow_edge      # Boolean, whether to include boundary intersection points
+```
+
+The use of the partition acceleration algorithm is not recommended, as it may produce incorrect results in calculations for irregular shapes; it functions correctly only for convex polyhedra.
+
+#### Volume Methods
+
+```
+volume(scene_face_data) # Returns all internal points and simultaneously stores them in the points attribute
+```
 
 ##### Operation Flow
 
