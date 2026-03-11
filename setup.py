@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="TurtleGL-3d",
-    version="1.2.3",
+    version="1.2.4",
     author="Han Yan",
     author_email="3367461801@qq.com",
     description="A 3D grafics library based on turtle",

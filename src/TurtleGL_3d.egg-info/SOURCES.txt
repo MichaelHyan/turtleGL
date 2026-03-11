@@ -1,0 +1,27 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+src/TurtleGL_3d.egg-info/PKG-INFO
+src/TurtleGL_3d.egg-info/SOURCES.txt
+src/TurtleGL_3d.egg-info/dependency_links.txt
+src/TurtleGL_3d.egg-info/requires.txt
+src/TurtleGL_3d.egg-info/top_level.txt
+src/turtleGL/__init__.py
+src/turtleGL/example/airplane_game.py
+src/turtleGL/example/racing_game.py
+src/turtleGL/example/turtleGL_anime_example.py
+src/turtleGL/example/turtleGL_cabin_example.py
+src/turtleGL/example/turtleGL_cube_example.py
+src/turtleGL/example/turtleGL_focal_example.py
+src/turtleGL/example/turtleGL_from_file_example.py
+src/turtleGL/example/turtleGL_grating_example.py
+src/turtleGL/example/turtleGL_obj_example.py
+src/turtleGL/example/turtleGL_plot3D_example.py
+src/turtleGL/example/turtleGL_volume_example.py
+src/turtleGL/example/christmas tree/turtleGL_christmas_tree_example.py
+src/turtleGL/example/texture example/turtleGL_texture_example.py
+src/turtleGL/src/camera.py
+src/turtleGL/src/plot3d.py
+src/turtleGL/src/scene.py
+src/turtleGL/src/volume.py

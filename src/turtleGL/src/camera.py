@@ -1,7 +1,7 @@
 import numpy as np
 import turtle,math,cv2,os
 class camera():
-    def __init__(self,title = 'turtleGL v1.2.3'):
+    def __init__(self,title = 'turtleGL v1.2.4'):
         self.title = title
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
@@ -178,6 +178,59 @@ class camera():
         y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
         return [x,y]
     
+    def homography(self, src_points, dst_points):
+        A = []
+        for i in range(4):
+            x, y = src_points[i]
+            u, v = dst_points[i]
+            A.append([-x, -y, -1, 0, 0, 0, x*u, y*u, u])
+            A.append([0, 0, 0, -x, -y, -1, x*v, y*v, v])
+        A = np.array(A)
+        U, S, Vt = np.linalg.svd(A)
+        H = Vt[-1].reshape(3, 3)
+        H = H / H[2, 2]
+        return H
+
+    def homography_point(self, H, point):
+        point_homogeneous = np.array([point[0], point[1], 1.0])
+        mapped_homogeneous = H @ point_homogeneous        
+        mapped_homogeneous /= mapped_homogeneous[2]
+        return math.floor(mapped_homogeneous[0]), math.floor(mapped_homogeneous[1])
+
+    def get_points_optimized(self,vertices):
+        vertices = np.array(vertices)
+        if not np.array_equal(vertices[0], vertices[-1]):
+            vertices = np.vstack([vertices, vertices[0:1]])
+        x_min, y_min = np.floor(vertices[:-1].min(axis=0)).astype(int)
+        x_max, y_max = np.ceil(vertices[:-1].max(axis=0)).astype(int)
+        x_vals = np.arange(x_min, x_max + 1)
+        y_vals = np.arange(y_min, y_max + 1)
+        X, Y = np.meshgrid(x_vals, y_vals)
+        points = np.column_stack([X.ravel(), Y.ravel()])
+        def is_inside_polygon(points, poly):
+            x, y = points[:, 0], points[:, 1]
+            n = len(poly) - 1
+            inside = np.zeros(len(points), dtype=bool)
+            for i in range(n):
+                x1, y1 = poly[i]
+                x2, y2 = poly[i + 1]
+                mask_on_segment = (
+                    (np.minimum(x1, x2) <= x) & (x <= np.maximum(x1, x2)) &
+                    (np.minimum(y1, y2) <= y) & (y <= np.maximum(y1, y2))
+                )
+                collinear = (x2 - x1) * (y - y1) == (y2 - y1) * (x - x1)
+                on_edge = mask_on_segment & collinear
+                intersect = (y1 > y) != (y2 > y)
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    xinters = (x2 - x1) * (y - y1) / (y2 - y1) + x1
+                valid_intersect = intersect & (xinters > x)
+                inside[valid_intersect] = ~inside[valid_intersect]
+                inside[on_edge] = True
+            return inside
+        inside_mask = is_inside_polygon(points, vertices)
+        interior_points = points[inside_mask]
+        return [list(map(int, point)) for point in interior_points]
+
     def pointcabinet(self, point_3d):
         return [point_3d[0]+0.5*point_3d[1]*math.cos(45), point_3d[2]+0.5*point_3d[1]*math.sin(45)]
 
@@ -290,12 +343,65 @@ class camera():
         else:
             pass
     
+    def drawtex(self,f):
+        if len(f[0]) != 4:
+            return
+        try:
+            image = cv2.imread(f[1])
+        except:
+            return
+        height, width, channels = image.shape
+        if self.type == 1:
+            reg_src = [self.pointfocal(f[0][0]),
+                       self.pointfocal(f[0][1]),
+                       self.pointfocal(f[0][2]),
+                       self.pointfocal(f[0][3])]
+        if self.type == -1:
+            reg_src = [self.pointorthografic(f[0][0]),
+                       self.pointorthografic(f[0][1]),
+                       self.pointorthografic(f[0][2]),
+                       self.pointorthografic(f[0][3])]
+        if self.type == 0:
+            reg_src = [self.pointcabinet(f[0][0]),
+                       self.pointcabinet(f[0][1]),
+                       self.pointcabinet(f[0][2]),
+                       self.pointcabinet(f[0][3])]
+        if self.type == 2:
+            reg_src = [self.pointisometric(f[0][0]),
+                       self.pointisometric(f[0][1]),
+                       self.pointisometric(f[0][2]),
+                       self.pointisometric(f[0][3])]
+        reg_src = reg_src[::-1]
+        reg_dst = [[0,0],[width,0],[width,height],[0,height]]
+        H = self.homography(reg_src,reg_dst)
+        verticles = self.get_points_optimized(reg_src)
+        def rgb_to_hex(rgb):
+            return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+        if self.type in [1,-1] and self.rend == 1:
+            for i in verticles:
+                try:
+                    turtle.goto(i)
+                    color = image[self.homography_point(H,i)[::-1]]
+                    turtle.dot(2,self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
+                except:
+                    pass
+        else:
+            for i in verticles:
+                try:
+                    turtle.goto(i)
+                    color = image[self.homography_point(H,i)[::-1]]
+                    turtle.dot(2,rgb_to_hex([color[2],color[1],color[0]]))
+                except:
+                    pass
+
     def draw_from_scene(self,sce):
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline(i)
-            else:
+            elif '#' in i[1]:
                 self.drawface(i)
+            else:
+                self.drawtex(i)
 
     def hex_to_bgr(self,hex_color):
             hex_color = hex_color.lstrip('#')
@@ -303,8 +409,6 @@ class camera():
             return (rgb[2], rgb[1], rgb[0])
     
     def drawline_cv2(self,l):#l=[[[x,x],[x,x],'#xxxxxx']
-        turtle.pensize = self.pensize
-        turtle.color(l[1])
         if self.type == 1:
             point1 = list(map(int,self.pointfocal(l[0][0])))
             point2 = list(map(int,self.pointfocal(l[0][1])))
@@ -398,12 +502,63 @@ class camera():
         else:
             pass
 
+    def drawtex_cv2(self,f):
+        if len(f[0]) != 4:
+            return
+        try:
+            image = cv2.imread(f[1])
+        except:
+            return
+        height, width, channels = image.shape
+        if self.type == 1:
+            reg_src = [self.pointfocal(f[0][0]),
+                       self.pointfocal(f[0][1]),
+                       self.pointfocal(f[0][2]),
+                       self.pointfocal(f[0][3])]
+        if self.type == -1:
+            reg_src = [self.pointorthografic(f[0][0]),
+                       self.pointorthografic(f[0][1]),
+                       self.pointorthografic(f[0][2]),
+                       self.pointorthografic(f[0][3])]
+        if self.type == 0:
+            reg_src = [self.pointcabinet(f[0][0]),
+                       self.pointcabinet(f[0][1]),
+                       self.pointcabinet(f[0][2]),
+                       self.pointcabinet(f[0][3])]
+        if self.type == 2:
+            reg_src = [self.pointisometric(f[0][0]),
+                       self.pointisometric(f[0][1]),
+                       self.pointisometric(f[0][2]),
+                       self.pointisometric(f[0][3])]
+        reg_src = reg_src[::-1]
+        reg_dst = [[0,0],[width,0],[width,height],[0,height]]
+        H = self.homography(reg_src,reg_dst)
+        verticles = self.get_points_optimized(reg_src)
+        def rgb_to_hex(rgb):
+            return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+        if self.type in [1,-1] and self.rend == 1 and self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
+            for i in verticles:
+                try:
+                    color = image[self.homography_point(H,i)[::-1]]
+                    self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
+                except:
+                    pass
+        else:
+            for i in verticles:
+                try:
+                    color = image[self.homography_point(H,i)[::-1]]
+                    self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(rgb_to_hex([color[2],color[1],color[0]]))
+                except:
+                    pass
+
     def draw_from_scene_cv2(self,sce):
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline_cv2(i)
-            else:
+            elif '#' in i[1]:
                 self.drawface_cv2(i)
+            else:
+                self.drawtex_cv2(i)
 
     def imshow(self):
         cv2.imshow(self.title,self.image)

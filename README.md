@@ -92,8 +92,9 @@ pointfocal([x,y,z])# In perspective mode, return coordinates mapped from space t
 pointcabinet([x,y,z])# In cabinet mode, return coordinates mapped from space to camera
 draw_axis(l)# Draw reference coordinate axes, l adjusts size
 dot([x, y, z], optional color) # Draw a single point, the size is determined by pensize
-drawline(linedata)# Input single edge data, draw edge
-drawface(facedata)# Input single face coordinates, draw face
+drawline(linedata) # Input single edge data to draw an edge
+drawface(facedata) # Input single face vertex data to draw a face
+drawtex(facedata) # Input single texture vertex data to draw a texture
 draw_from_scene(scenedata)# Input integrated data, draw all
 delay()# Delay, same effect as turtle.delay()
 clear()# Clear canvas, same effect as turtle.clear()
@@ -104,7 +105,7 @@ done()# Prevent automatic window closing, same effect as turtle.done()
 
 #### Scene Attributes
 
-The scene contains line and face attributes, storing edge/face data.
+The scene contains line, face and tex attributes, storing edge/face/texture data.
 
 Multiple scene objects can be used.
 
@@ -140,12 +141,15 @@ import_face(path)# Import face data
 scene.rotate_edge()# Iterate over edges, used to generate different triangulations
 sort_line_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
 sort_face_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
+sort_tex_avg([camera x, camera y, camera z])# Adjust layer order in perspective or orthographic mode, modify scene object attributes and return adjusted data
 sort_all_avg([camera x, camera y, camera z])# Return all adjusted data, does not modify scene object attributes
 sort_line_cabin()# Adjust layer order in cabinet mode, modify scene object attributes and return adjusted data
 sort_face_cabin()# Adjust layer order in cabinet mode, modify scene object attributes and return adjusted data
+sort_tex_cabin()# Adjust layer order in cabinet mode, modify scene object attributes and return adjusted data
 sort_all_cabin()# Return all adjusted data, does not modify scene object attributes
 sort_line_isometric()# Adjust layer order in isometric mode, modify scene object attributes and return adjusted data
 sort_face_isometric()# Adjust layer order in isometric mode, modify scene object attributes and return adjusted data
+sort_tex_isometric()# Adjust layer order in isometric mode, modify scene object attributes and return adjusted data
 sort_all_isometric()# Return all adjusted data, does not modify scene object attributes
 reverse_normvect(i)# Modify the normal direction of the i-th face data
 import_obj(path, scale factor, color)# Import obj model, random color if color is empty
@@ -158,6 +162,10 @@ scene.generate_obj_line(color)# Generate edges based on face data
 This project does not currently support stable rasterization algorithms, so light ray calculations do not exist.
 
 The front/back order of faces is determined by the layer and rendering order.
+
+##### Texture
+
+The usage is consistent with face attributes, except that the color index is replaced by the image path.
 
 ##### obj Model
 

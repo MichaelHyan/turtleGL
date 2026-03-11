@@ -5,6 +5,7 @@ class scene():
     def __init__(self):
         self.line = []
         self.face = []
+        self.tex = []
         self.center = [0,0,0]
     
     def get_center(self):
@@ -52,12 +53,17 @@ class scene():
         for i in self.line:
             for j in range(len(i[0])):
                 i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
+        for i in self.tex:
+            for j in range(len(i[0])):
+                i[0][j] = self.rotate_point(rotate_vector,center,i[0][j])
         self.center = self.rotate_point(rotate_vector,center,self.center)
 
     def rotate_edge(self):
         def rotate_left(arr):
             return arr[1:] + arr[:1]
         for i in self.face:
+            i[0] = rotate_left(i[0])
+        for i in self.tex:
             i[0] = rotate_left(i[0])
 
     def move_point(self,move_vector,point):
@@ -68,6 +74,9 @@ class scene():
             for j in range(len(i[0])):
                 i[0][j] = self.move_point(move_vector,i[0][j])
         for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.move_point(move_vector,i[0][j])
+        for i in self.tex:
             for j in range(len(i[0])):
                 i[0][j] = self.move_point(move_vector,i[0][j])
         self.center = self.move_point(move_vector,self.center)
@@ -82,6 +91,9 @@ class scene():
             for j in range(len(i[0])):
                 i[0][j] = self.scale_point(scale_vector,center,i[0][j])
         for i in self.line:
+            for j in range(len(i[0])):
+                i[0][j] = self.scale_point(scale_vector,center,i[0][j])
+        for i in self.tex:
             for j in range(len(i[0])):
                 i[0][j] = self.scale_point(scale_vector,center,i[0][j])
 
@@ -201,8 +213,28 @@ class scene():
         self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
         return self.face
     
+    def sort_tex_avg(self,camera_pos):
+        def avg(coordinates):
+            if not coordinates:
+                return [0, 0, 0]
+            sum_x = sum_y = sum_z = 0
+            count = len(coordinates)
+            for coord in coordinates:
+                sum_x += coord[0]
+                sum_y += coord[1]
+                sum_z += coord[2]
+            avg_x = sum_x / count
+            avg_y = sum_y / count
+            avg_z = sum_z / count
+            return [avg_x, avg_y, avg_z]
+        diatance = []
+        for i in self.tex:
+            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            diatance.append(dis)
+        self.tex = [x for _, x in sorted(zip(diatance, self.tex), reverse=True)]
+        return self.tex
+    
     def sort_line_cabin(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
-        camera_pos = [999999,-999999,999999]
         def avg(coordinates):
             if not coordinates:
                 return [0, 0, 0]
@@ -218,13 +250,12 @@ class scene():
             return [avg_x, avg_y, avg_z]
         diatance = []
         for i in self.line:
-            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            dis = -avg(i[0])[0]+avg(i[0])[1]-avg(i[0])[2]
             diatance.append(dis)
         self.line = [x for _, x in sorted(zip(diatance, self.line), reverse=True)]
         return self.line
 
     def sort_face_cabin(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
-        camera_pos = [999999,-999999,999999]
         def avg(coordinates):
             if not coordinates:
                 return [0, 0, 0]
@@ -240,13 +271,12 @@ class scene():
             return [avg_x, avg_y, avg_z]
         diatance = []
         for i in self.face:
-            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            dis = -avg(i[0])[0]+avg(i[0])[1]-avg(i[0])[2]
             diatance.append(dis)
         self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
         return self.face
     
     def sort_line_isometric(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
-        camera_pos = [-999999,-999999,999999]
         def avg(coordinates):
             if not coordinates:
                 return [0, 0, 0]
@@ -262,13 +292,12 @@ class scene():
             return [avg_x, avg_y, avg_z]
         diatance = []
         for i in self.line:
-            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            dis = avg(i[0])[0]+avg(i[0])[1]-avg(i[0])[2]
             diatance.append(dis)
         self.line = [x for _, x in sorted(zip(diatance, self.line), reverse=True)]
         return self.line
 
     def sort_face_isometric(self):#[[[x,x,x],[x,x,x]],'#xxxxxx']
-        camera_pos = [-999999,-999999,999999]
         def avg(coordinates):
             if not coordinates:
                 return [0, 0, 0]
@@ -284,7 +313,7 @@ class scene():
             return [avg_x, avg_y, avg_z]
         diatance = []
         for i in self.face:
-            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            dis = avg(i[0])[0]+avg(i[0])[1]-avg(i[0])[2]
             diatance.append(dis)
         self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
         return self.face
@@ -313,10 +342,12 @@ class scene():
             dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
             diatance.append(dis)
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
+        self.sort_tex_avg(camera_pos)
+        for i in self.tex:
+            fl.append(i)
         return fl
     
     def sort_all_cabin(self):
-        camera_pos = [999999,-999999,999999]
         def avg(coordinates):
             if not coordinates:
                 return [0, 0, 0]
@@ -331,13 +362,15 @@ class scene():
             avg_z = sum_z / count
             return [avg_x, avg_y, avg_z]
         fl = []
+        for i in self.tex:
+            fl.append(i)
         for i in self.face:
             fl.append(i)
         for i in self.line:
             fl.append(i)
         diatance = []
         for i in fl:
-            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            dis = -avg(i[0])[0]+avg(i[0])[1]-avg(i[0])[2]
             diatance.append(dis)
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
         return fl
@@ -358,13 +391,15 @@ class scene():
             avg_z = sum_z / count
             return [avg_x, avg_y, avg_z]
         fl = []
+        for i in self.tex:
+            fl.append(i)
         for i in self.face:
             fl.append(i)
         for i in self.line:
             fl.append(i)
         diatance = []
         for i in fl:
-            dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
+            dis = avg(i[0])[0]+avg(i[0])[1]-avg(i[0])[2]-camera_pos[2]
             diatance.append(dis)
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
         return fl
