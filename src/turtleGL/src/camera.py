@@ -1,7 +1,7 @@
 import numpy as np
 import turtle,math,cv2,os
 class camera():
-    def __init__(self,title = 'turtleGL v1.2.4'):
+    def __init__(self,title = 'turtleGL-3d'):
         self.title = title
         self.camera_position = [0, 0, 0]
         self.camera_direction = [0, 0, 1]
@@ -347,10 +347,10 @@ class camera():
         if len(f[0]) != 4:
             return
         try:
-            image = cv2.imread(f[1])
+            image = cv2.imread(f[1],cv2.IMREAD_UNCHANGED)
+            height, width, channels = cv2.imread(f[1]).shape
         except:
             return
-        height, width, channels = image.shape
         if self.type == 1:
             reg_src = [self.pointfocal(f[0][0]),
                        self.pointfocal(f[0][1]),
@@ -382,7 +382,8 @@ class camera():
                 try:
                     turtle.goto(i)
                     color = image[self.homography_point(H,i)[::-1]]
-                    turtle.dot(2,self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
+                    if color[3] != 0:
+                        turtle.dot(2,self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
                 except:
                     pass
         else:
@@ -390,7 +391,8 @@ class camera():
                 try:
                     turtle.goto(i)
                     color = image[self.homography_point(H,i)[::-1]]
-                    turtle.dot(2,rgb_to_hex([color[2],color[1],color[0]]))
+                    if color[3] != 0:
+                        turtle.dot(2,rgb_to_hex([color[2],color[1],color[0]]))
                 except:
                     pass
 
@@ -506,10 +508,10 @@ class camera():
         if len(f[0]) != 4:
             return
         try:
-            image = cv2.imread(f[1])
+            image = cv2.imread(f[1],cv2.IMREAD_UNCHANGED)
+            height, width, channels = cv2.imread(f[1]).shape
         except:
             return
-        height, width, channels = image.shape
         if self.type == 1:
             reg_src = [self.pointfocal(f[0][0]),
                        self.pointfocal(f[0][1]),
@@ -540,14 +542,16 @@ class camera():
             for i in verticles:
                 try:
                     color = image[self.homography_point(H,i)[::-1]]
-                    self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
+                    if color[3] != 0:
+                        self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
                 except:
                     pass
         else:
             for i in verticles:
                 try:
                     color = image[self.homography_point(H,i)[::-1]]
-                    self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(rgb_to_hex([color[2],color[1],color[0]]))
+                    if color[3] != 0:
+                        self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(rgb_to_hex([color[2],color[1],color[0]]))
                 except:
                     pass
 

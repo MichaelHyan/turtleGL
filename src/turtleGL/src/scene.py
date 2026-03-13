@@ -337,14 +337,13 @@ class scene():
             fl.append(i)
         for i in self.line:
             fl.append(i)
+        for i in self.tex:
+            fl.append(i)
         diatance = []
         for i in fl:
             dis = (avg(i[0])[0]-camera_pos[0])**2+(avg(i[0])[1]-camera_pos[1])**2+(avg(i[0])[2]-camera_pos[2])**2
             diatance.append(dis)
         fl = [x for _, x in sorted(zip(diatance, fl), reverse=True)]
-        self.sort_tex_avg(camera_pos)
-        for i in self.tex:
-            fl.append(i)
         return fl
     
     def sort_all_cabin(self):
