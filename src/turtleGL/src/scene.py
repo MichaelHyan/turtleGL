@@ -171,6 +171,18 @@ class scene():
         self.face = [x for _, x in sorted(zip(diatance, self.face), reverse=True)]
         return self.face
     
+    def sort_tex_min(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
+        diatance = []
+        dis = (self.tex[0][0][0][0]-camera_pos[0])**2+(self.tex[0][0][0][1]-camera_pos[1])**2+(self.tex[0][0][0][2]-camera_pos[2])**2
+        for i in self.tex:
+            for j in i[0]:
+                t_dis = (j[0]-camera_pos[0])**2+(j[0]-camera_pos[1])**2+(j[0]-camera_pos[2])**2
+                if t_dis < dis:
+                    dis = t_dis
+            diatance.append(dis)
+        self.tex = [x for _, x in sorted(zip(diatance, self.tex), reverse=True)]
+        return self.tex
+    
     def sort_line_avg(self,camera_pos):#[[[x,x,x],[x,x,x]],'#xxxxxx']
         def avg(coordinates):
             if not coordinates:

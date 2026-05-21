@@ -8,7 +8,10 @@ camera.camera_focal = 500
 camera.ray = [-1,1,-1]
 camera.type = 1
 camera.rend = 1
+camera.grating_length=10
+camera.show_bar = True
 scene = turtleGL.scene()
+
 
 path = 'test.obj'
 scene.import_obj(path,50,'#66ccff')

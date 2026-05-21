@@ -8,6 +8,7 @@ class camera():
         self.camera_rotation = 0
         self.camera_focal = 1
         self.point_behind_cam_type = 0
+        self.point_behind_cam_allow_count = 0
         self.ray = [0,0,-1]
         self.rend = 0
         self.shade_value = 128
@@ -15,8 +16,11 @@ class camera():
         self.pencolor = '#000000'
         self.type = 1
         self.grating_size = [500,400]
+        self.grating_length = 1
         self.image_size = [500,400]
         self.image = []
+
+        self.show_bar = False
         turtle.title = title
         turtle.penup()
         turtle.tracer(0)
@@ -26,7 +30,7 @@ class camera():
         if self.type == 0:
             turtle.goto(self.pointcabinet(point))
         elif self.type == 1:
-            turtle.goto(self.pointfocal(point))
+            turtle.goto(self.pointfocal(point)[0])
         elif self.type == 2:
             turtle.goto(self.pointisometric(point))
         turtle.write(str,move=move,align=align,font=font)
@@ -35,7 +39,7 @@ class camera():
         if self.type == 0:
             turtle.goto(self.pointcabinet(point))
         elif self.type == 1:
-            turtle.goto(self.pointfocal(point))
+            turtle.goto(self.pointfocal(point)[0])
         elif self.type == 2:
             turtle.goto(self.pointisometric(point))
         turtle.dot(self.pensize,color)
@@ -78,6 +82,13 @@ class camera():
         print(f'type : {'focal' if self.type == 1 else 'cabin' if self.type == 0 else 'isometric' if self.type == 2 else 'orthografic' if self.type == -1 else self.type}')
         print('=================================')
 
+    def bar(self,i,total):
+        if self.show_bar:
+            percent = i / total        
+            filled_length = int(50 * percent)
+            bar = '█' * filled_length + '-' * (50 - filled_length)
+            print(f'\r|{bar}| {percent:.2%}', end='', flush=True)
+
     def tracer(self, t):
         turtle.tracer(t)
 
@@ -110,6 +121,7 @@ class camera():
         if point_cam[2] > 0:
             u = (self.camera_focal * point_cam[0]) / point_cam[2]
             v = (self.camera_focal * point_cam[1]) / point_cam[2]
+            allow = True
         else:
             if self.point_behind_cam_type == 0:#直接计算
                 u = (self.camera_focal * point_cam[0]) / point_cam[2]
@@ -117,13 +129,18 @@ class camera():
             elif self.point_behind_cam_type == 1:#uv取反
                 u = (-1 * self.camera_focal * point_cam[0]) / point_cam[2]
                 v = (-1 * self.camera_focal * point_cam[1]) / point_cam[2]
-            elif self.point_behind_cam_type == 2:#改为倍数正交透视
+            elif self.point_behind_cam_type == 2:#改为正交透视
                 u = self.camera_focal * point_cam[0]
                 v = self.camera_focal * point_cam[1]
+            elif self.point_behind_cam_type == 3:#改为倍数正交透视
+                distance = (point_cam[0]-point_3d[0])**2 + (point_cam[1]-point_3d[1])**2 + (point_cam[2]-point_3d[2])**2
+                u = self.camera_focal * point_cam[0] * (point_cam[2] * -1 + 0.1 * distance / self.camera_focal)
+                v = self.camera_focal * point_cam[1] * (point_cam[2] * -1 + 0.1 * distance / self.camera_focal)
+            allow = False
         x = u * math.cos(self.camera_rotation) - v * math.sin(self.camera_rotation)
         y = u * math.sin(self.camera_rotation) + v * math.cos(self.camera_rotation)
-        return [x,y]
-        
+        return [[x,y],allow]
+    
     def pointfocal_inverse(self, point_2d):
         x, y = point_2d
         u = x * math.cos(-self.camera_rotation) - y * math.sin(-self.camera_rotation)
@@ -242,19 +259,19 @@ class camera():
         if self.type == 1:
             turtle.pensize = self.pensize
             turtle.color('#ff0000')
-            turtle.goto(self.pointfocal([0,0,0]))
+            turtle.goto(self.pointfocal([0,0,0])[0])
             turtle.pendown()
-            turtle.goto(self.pointfocal([l,0,0]))
+            turtle.goto(self.pointfocal([l,0,0])[0])
             turtle.penup()
             turtle.color('#00ff00')
-            turtle.goto(self.pointfocal([0,0,0]))
+            turtle.goto(self.pointfocal([0,0,0])[0])
             turtle.pendown()
-            turtle.goto(self.pointfocal([0,l,0]))
+            turtle.goto(self.pointfocal([0,l,0])[0])
             turtle.penup()
             turtle.color('#0000ff')
-            turtle.goto(self.pointfocal([0,0,0]))
+            turtle.goto(self.pointfocal([0,0,0])[0])
             turtle.pendown()
-            turtle.goto(self.pointfocal([0,0,l]))
+            turtle.goto(self.pointfocal([0,0,l])[0])
             turtle.penup()
         else:
             pass
@@ -267,9 +284,9 @@ class camera():
         turtle.pensize = self.pensize
         turtle.color(l[1])
         if self.type == 1:
-            turtle.goto(self.pointfocal(l[0][0]))
+            turtle.goto(self.pointfocal(l[0][0])[0])
             turtle.pendown()
-            turtle.goto(self.pointfocal(l[0][1]))
+            turtle.goto(self.pointfocal(l[0][1])[0])
             turtle.penup()
         if self.type == -1:
             turtle.goto(self.pointorthografic(l[0][0]))
@@ -301,11 +318,11 @@ class camera():
                     turtle.color('#FF0000')
                 else:
                     turtle.color('#0000FF')
-            turtle.goto(self.pointfocal(f[0][0]))
+            turtle.goto(self.pointfocal(f[0][0])[0])
             self.pointfocal(f[0][0])#???
             turtle.begin_fill()
             for i in range(len(f[0])):
-                turtle.goto(self.pointfocal(f[0][i]))
+                turtle.goto(self.pointfocal(f[0][i])[0])
             turtle.end_fill()
             turtle.penup()
         elif self.type == -1:
@@ -343,7 +360,7 @@ class camera():
         else:
             pass
     
-    def drawtex(self,f):
+    def drawtex(self,f,skyblock_mode=False):
         if len(f[0]) != 4:
             return
         try:
@@ -352,10 +369,13 @@ class camera():
         except:
             return
         if self.type == 1:
-            reg_src = [self.pointfocal(f[0][0]),
-                       self.pointfocal(f[0][1]),
-                       self.pointfocal(f[0][2]),
-                       self.pointfocal(f[0][3])]
+            incheck = 0
+            reg_src = []
+            for i in range(4):
+                point = self.pointfocal(f[0][i])
+                reg_src.append(point[0])
+                if point[1] == True:
+                    incheck += 1
         if self.type == -1:
             reg_src = [self.pointorthografic(f[0][0]),
                        self.pointorthografic(f[0][1]),
@@ -377,7 +397,9 @@ class camera():
         verticles = self.get_points_optimized(reg_src)
         def rgb_to_hex(rgb):
             return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
-        if self.type in [1,-1] and self.rend == 1:
+        if incheck <= 4 - self.point_behind_cam_allow_count and self.type in [1,-1]:
+            return
+        if self.type in [1,-1] and self.rend == 1 and not skyblock_mode:
             for i in verticles:
                 try:
                     turtle.goto(i)
@@ -397,6 +419,8 @@ class camera():
                     pass
 
     def draw_from_scene(self,sce):
+        total = len(sce)
+        j = 0
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline(i)
@@ -404,6 +428,8 @@ class camera():
                 self.drawface(i)
             else:
                 self.drawtex(i)
+            j += 1
+            self.bar(j,total)
 
     def hex_to_bgr(self,hex_color):
             hex_color = hex_color.lstrip('#')
@@ -412,8 +438,8 @@ class camera():
     
     def drawline_cv2(self,l):#l=[[[x,x],[x,x],'#xxxxxx']
         if self.type == 1:
-            point1 = list(map(int,self.pointfocal(l[0][0])))
-            point2 = list(map(int,self.pointfocal(l[0][1])))
+            point1 = list(map(int,self.pointfocal(l[0][0])[0]))
+            point2 = list(map(int,self.pointfocal(l[0][1])[0]))
             point1[0] = point1[0] + self.image_size[0]//2
             point1[1] = -1*point1[1] + self.image_size[1]//2
             point2[0] = point2[0] + self.image_size[0]//2
@@ -461,7 +487,7 @@ class camera():
             m = []
             self.pointfocal(f[0][0])#???
             for i in range(len(f[0])):
-                m.append(self.pointfocal(f[0][i]))
+                m.append(self.pointfocal(f[0][i])[0])
             m = np.array(m,np.int32)
             m *= [1,-1]
             m += [self.image_size[0]//2,self.image_size[1]//2]
@@ -504,7 +530,7 @@ class camera():
         else:
             pass
 
-    def drawtex_cv2(self,f):
+    def drawtex_cv2(self,f,skyblock_mode=False):
         if len(f[0]) != 4:
             return
         try:
@@ -513,10 +539,13 @@ class camera():
         except:
             return
         if self.type == 1:
-            reg_src = [self.pointfocal(f[0][0]),
-                       self.pointfocal(f[0][1]),
-                       self.pointfocal(f[0][2]),
-                       self.pointfocal(f[0][3])]
+            incheck = 0
+            reg_src = []
+            for i in range(4):
+                point = self.pointfocal(f[0][i])
+                reg_src.append(point[0])
+                if point[1] == True:
+                    incheck += 1
         if self.type == -1:
             reg_src = [self.pointorthografic(f[0][0]),
                        self.pointorthografic(f[0][1]),
@@ -538,7 +567,9 @@ class camera():
         verticles = self.get_points_optimized(reg_src)
         def rgb_to_hex(rgb):
             return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
-        if self.type in [1,-1] and self.rend == 1 and self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
+        if incheck == 0 or incheck < 4 - self.point_behind_cam_allow_count and self.type in [1,-1]:
+            return
+        if self.type in [1,-1] and self.rend == 1 and self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]) and not skyblock_mode:
             for i in verticles:
                 try:
                     color = image[self.homography_point(H,i)[::-1]]
@@ -556,6 +587,8 @@ class camera():
                     pass
 
     def draw_from_scene_cv2(self,sce):
+        total = len(sce)
+        j = 0
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline_cv2(i)
@@ -563,6 +596,8 @@ class camera():
                 self.drawface_cv2(i)
             else:
                 self.drawtex_cv2(i)
+            j += 1
+            self.bar(j,total)
 
     def imshow(self):
         cv2.imshow(self.title,self.image)
@@ -622,21 +657,29 @@ class camera():
 
     def grating(self,face):
         if self.rend == 0:
-            for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,1):
-                for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,1):
+            total = self.grating_size[0]*self.grating_size[1]
+            c = 0
+            for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,self.grating_length):
+                for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,self.grating_length):
                     [x,y,z] = self.pointfocal_inverse([i,j])
                     ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
                     for k in face:
                         a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
                         if a:
-                            turtle.goto(i,j)
-                            turtle.dot(2,k[1])
+                            for xi in range(self.grating_length):
+                                for yi in range(self.grating_length):
+                                    turtle.goto(i+xi,j+yi)
+                                    turtle.dot(2,k[1])
                             continue
                         else:
                             pass
+                    c += 1
+                    self.bar(c,total)
         elif self.rend == 1:
-            for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,1):
-                for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,1):
+            total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
+            c = 0
+            for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,self.grating_length):
+                for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,self.grating_length):
                     [x,y,z] = self.pointfocal_inverse([i,j])
                     ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
                     for k in face:
@@ -653,32 +696,46 @@ class camera():
                                     else:
                                         pass
                                 color = self.multiply(k[1]) if mark == 1 else k[1]
-                                turtle.goto(i,j)
-                                turtle.dot(2,color)
+                                for xi in range(self.grating_length):
+                                    for yi in range(self.grating_length):
+                                        turtle.goto(i+xi,j+yi)
+                                        turtle.dot(2,color)
                             else:
-                                turtle.goto(i,j)
-                                turtle.dot(2,self.multiply(k[1]))
+                                for xi in range(self.grating_length):
+                                    for yi in range(self.grating_length):
+                                        turtle.goto(i+xi,j+yi)
+                                        turtle.dot(2,self.multiply(k[1]))
                                 continue
                         else:
                             pass
+                    c += 1
+                    self.bar(c,total)
     
     def grating_cv2(self,face):
         if self.rend == 0:
-            for i in range(-1*self.image_size[0]//2,self.image_size[0]//2,1):
-                for j in range(-1*self.image_size[1]//2,self.image_size[1]//2,1):
+            total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
+            c = 0
+            for i in range(-1*self.image_size[0]//2,self.image_size[0]//2,self.grating_length):
+                for j in range(-1*self.image_size[1]//2,self.image_size[1]//2,self.grating_length):
                     [x,y,z] = self.pointfocal_inverse([i,j])
                     ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
                     for k in face:
                         a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
                         if a:
-                            self.image[-j+self.image_size[1]//2,
-                                       i+self.image_size[0]//2] = self.hex_to_bgr(k[1])
+                            for xi in range(self.grating_length):
+                                for yi in range(self.grating_length):
+                                    self.image[-j+self.image_size[1]//2+xi,
+                                               i+self.image_size[0]//2+yi] = self.hex_to_bgr(k[1])
                             continue
                         else:
                             pass
+                    c += 1
+                    self.bar(c,total)
         elif self.rend == 1:
-            for i in range(-1*self.image_size[0]//2,self.image_size[0]//2,1):
-                for j in range(-1*self.image_size[1]//2,self.image_size[1]//2,1):
+            total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
+            c = 0
+            for i in range(-1*self.image_size[0]//2,self.image_size[0]//2,self.grating_length):
+                for j in range(-1*self.image_size[1]//2,self.image_size[1]//2,self.grating_length):
                     [x,y,z] = self.pointfocal_inverse([i,j])
                     ray = [x-self.camera_position[0],y-self.camera_position[1],z-self.camera_position[2]]
                     for k in face:
@@ -695,12 +752,20 @@ class camera():
                                     else:
                                         pass
                                 color = self.multiply(k[1]) if mark == 1 else k[1]
-                                self.image[-j+self.image_size[1]//2,i+self.image_size[0]//2] = self.hex_to_bgr(color)
+                                for i in range(self.grating_length):
+                                    for j in range(self.grating_length):
+                                        self.image[-j+self.image_size[1]//2+xi,
+                                                   i+self.image_size[0]//2+yi] = self.hex_to_bgr(color)
                             else:
-                                self.image[-j+self.image_size[1]//2,i+self.image_size[0]//2] = self.hex_to_bgr(k[1])
+                                for i in range(self.grating_length):
+                                    for j in range(self.grating_length):
+                                        self.image[-j+self.image_size[1]//2+xi,
+                                                   i+self.image_size[0]//2+yi] = self.hex_to_bgr(k[1])
                                 continue
                         else:
                             pass
+                    c += 1
+                    self.bar(c,total)
 
     def show_grating_limit(self,c='#000000'):
         turtle.pencolor(c)
