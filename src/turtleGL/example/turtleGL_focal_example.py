@@ -37,8 +37,11 @@ scene.sort_line_avg(camera.camera_position)#仅边
 scene.sort_face_avg(camera.camera_position)#仅面
 scene.sort_all_avg(camera.camera_position)#全部整理，直接返回结构化数据，不修改对象
 
+ray = turtleGL.ray()
+ray.add_sunlight([1,1,-1])
+
 #绘制 包含边线
-camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
+camera.draw_from_scene(scene.sort_all_avg(camera.camera_position),ray)
 
 #绘制 仅边
 #camera.draw_from_scene(scene.line)

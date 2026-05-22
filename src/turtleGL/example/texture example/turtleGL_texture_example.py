@@ -23,9 +23,12 @@ scene.tex = [[[[50.0, 50.0, 100.0], [-50.0, 50.0, 100.0], [-50.0, -50.0, 100.0],
              [[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0], [-50.0, 50.0, 100.0], [50.0, 50.0, 100.0]], 'grass_side.png'],
              [[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0], [50.0, -50.0, 0.0]], 'grass_bottom.png']]
 
+ray = turtleGL.ray()
+ray.add_sunlight([-1,-1,-1])
+
 camera.image_size = [700,700]
 camera.create_image('#ffffff')
-camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position))
+camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position),ray)
 
 camera.imshow()
 #camera.done()
@@ -34,7 +37,7 @@ for i in range(0):
     camera.create_image('#ffffff')
     camera.camera_position = [200*math.cos(math.radians(i)),200*math.sin(math.radians(i)),130+math.sin(math.radians(i/5))]
     camera.to_target([0,0,50+math.sin(math.radians(i/5))])
-    camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position))
+    camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position),ray)
     camera.capture('grass_block',i)
     #camera.imshow()
     print(i)

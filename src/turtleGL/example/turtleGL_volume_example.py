@@ -24,7 +24,9 @@ volume.allow_edge=True#允许边界交点
 #volume.grid_limit=300#分区加速算法界限，在一定三角形数量以上时启用，默认正无穷，仅在凸多面体下正常工作
 volume.volume(scene.face)#体积生成
 
-camera.draw_from_scene(scene.sort_line_avg(camera.camera_position))
+ray = turtleGL.ray()
+
+camera.draw_from_scene(scene.sort_line_avg(camera.camera_position),ray)
 for i in volume.points:
     camera.dot(i)
 camera.done()

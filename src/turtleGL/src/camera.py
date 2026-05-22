@@ -9,9 +9,7 @@ class camera():
         self.camera_focal = 1
         self.point_behind_cam_type = 0
         self.point_behind_cam_allow_count = 0
-        self.ray = [0,0,-1]
         self.rend = 0
-        self.shade_value = 128
         self.pensize = 2
         self.pencolor = '#000000'
         self.type = 1
@@ -76,14 +74,12 @@ class camera():
         print(f'camera rotation : {self.camera_rotation}')
         print(f'camera focal : {self.camera_focal}')
         print(f'point behind cam(focal mode): {'do nothing' if self.point_behind_cam_type == 0 else 'reverse uv' if self.point_behind_cam_type == 1 else 'switch to orthografic mode' if self.point_behind_cam_type == 2 else self.point_behind_cam_type}')
-        print(f'ray direction : {self.ray}')
         print(f'using rend : {'material preview' if self.rend == 0 else 'shade' if self.rend == 1 else 'normal vector preview' if self.rend == 2 else self.rend}')
-        print(f'shade value : {self.shade_value}')
         print(f'type : {'focal' if self.type == 1 else 'cabin' if self.type == 0 else 'isometric' if self.type == 2 else 'orthografic' if self.type == -1 else self.type}')
         print('=================================')
 
     def bar(self,i,total):
-        if self.show_bar:
+        if self.show_bar and i <= total:
             percent = i / total        
             filled_length = int(50 * percent)
             bar = '█' * filled_length + '-' * (50 - filled_length)
@@ -306,13 +302,12 @@ class camera():
         else:
             pass
 
-    def drawface(self,f):
+    def drawface(self,f,ray):
         turtle.pensize = self.pensize
         turtle.color(f[1])
         if self.type == 1:
             if self.rend == 1:
-                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
-                    turtle.color(self.multiply(f[1]))
+                turtle.color(self.multiply(f[1],ray.get_value(f[0][0],f[0][1],f[0][2])))
             elif self.rend == 2:
                 if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
                     turtle.color('#FF0000')
@@ -327,10 +322,9 @@ class camera():
             turtle.penup()
         elif self.type == -1:
             if self.rend == 1:
-                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
-                    turtle.color(self.multiply(f[1]))
+                turtle.color(self.multiply(f[1],ray.get_value(f[0][0],f[0][1],f[0][2])))
             elif self.rend == 2:
-                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]) >= 0:
                     turtle.color('#FF0000')
                 else:
                     turtle.color('#0000FF')
@@ -360,7 +354,7 @@ class camera():
         else:
             pass
     
-    def drawtex(self,f,skyblock_mode=False):
+    def drawtex(self,f,ray,skyblock_mode=False):
         if len(f[0]) != 4:
             return
         try:
@@ -376,6 +370,7 @@ class camera():
                 reg_src.append(point[0])
                 if point[1] == True:
                     incheck += 1
+            value = ray.get_value(f[0][0],f[0][1],f[0][2])
         if self.type == -1:
             reg_src = [self.pointorthografic(f[0][0]),
                        self.pointorthografic(f[0][1]),
@@ -405,7 +400,7 @@ class camera():
                     turtle.goto(i)
                     color = image[self.homography_point(H,i)[::-1]]
                     if color[3] != 0:
-                        turtle.dot(2,self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
+                        turtle.dot(2,self.multiply(rgb_to_hex([color[2],color[1],color[0]]),value))
                 except:
                     pass
         else:
@@ -418,16 +413,16 @@ class camera():
                 except:
                     pass
 
-    def draw_from_scene(self,sce):
+    def draw_from_scene(self,sce,ray):
         total = len(sce)
         j = 0
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline(i)
             elif '#' in i[1]:
-                self.drawface(i)
+                self.drawface(i,ray)
             else:
-                self.drawtex(i)
+                self.drawtex(i,ray)
             j += 1
             self.bar(j,total)
 
@@ -473,14 +468,13 @@ class camera():
                      self.hex_to_bgr(l[1]),
                      self.pensize)
 
-    def drawface_cv2(self,f):
+    def drawface_cv2(self,f,ray):
         color = f[1]
         if self.type == 1:
             if self.rend == 1:
-                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
-                    color = self.multiply(f[1])
+                color = self.multiply(f[1],ray.get_value(f[0][0],f[0][1],f[0][2]))
             elif self.rend == 2:
-                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]) >= 0:
                     color = '#FF0000'
                 else:
                     color = '#0000FF'
@@ -494,10 +488,9 @@ class camera():
             cv2.fillPoly(self.image,[m],self.hex_to_bgr(color))
         if self.type == -1:
             if self.rend == 1:
-                if self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]):
-                    color = self.multiply(f[1])
+                color = self.multiply(f[1],ray.get_value(f[0][0],f[0][1],f[0][2]))
             elif self.rend == 2:
-                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]):
+                if self.normalvect(self.camera_direction,f[0][0],f[0][1],f[0][2]) >= 0:
                     color = '#FF0000'
                 else:
                     color = '#0000FF'
@@ -530,7 +523,7 @@ class camera():
         else:
             pass
 
-    def drawtex_cv2(self,f,skyblock_mode=False):
+    def drawtex_cv2(self,f,ray,skyblock_mode=False):
         if len(f[0]) != 4:
             return
         try:
@@ -546,6 +539,7 @@ class camera():
                 reg_src.append(point[0])
                 if point[1] == True:
                     incheck += 1
+            value = ray.get_value(f[0][0],f[0][1],f[0][2])
         if self.type == -1:
             reg_src = [self.pointorthografic(f[0][0]),
                        self.pointorthografic(f[0][1]),
@@ -569,12 +563,12 @@ class camera():
             return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
         if incheck == 0 or incheck < 4 - self.point_behind_cam_allow_count and self.type in [1,-1]:
             return
-        if self.type in [1,-1] and self.rend == 1 and self.normalvect(self.ray,f[0][0],f[0][1],f[0][2]) and not skyblock_mode:
+        if self.type in [1,-1] and self.rend == 1 and not skyblock_mode:
             for i in verticles:
                 try:
                     color = image[self.homography_point(H,i)[::-1]]
                     if color[3] != 0:
-                        self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(self.multiply(rgb_to_hex([color[2],color[1],color[0]])))
+                        self.image[-i[1]-self.image_size[1]//2,i[0]+self.image_size[0]//2]=self.hex_to_bgr(self.multiply(rgb_to_hex([color[2],color[1],color[0]]),value))
                 except:
                     pass
         else:
@@ -586,16 +580,16 @@ class camera():
                 except:
                     pass
 
-    def draw_from_scene_cv2(self,sce):
+    def draw_from_scene_cv2(self,sce,ray):
         total = len(sce)
         j = 0
         for i in sce:
             if len(i[0]) == 2:
                 self.drawline_cv2(i)
             elif '#' in i[1]:
-                self.drawface_cv2(i)
+                self.drawface_cv2(i,ray)
             else:
-                self.drawtex_cv2(i)
+                self.drawtex_cv2(i,ray)
             j += 1
             self.bar(j,total)
 
@@ -655,9 +649,10 @@ class camera():
         intersection_point = ray_origin + t * ray_direction
         return True, intersection_point[0], intersection_point[2], intersection_point[1]
 
-    def grating(self,face):
+    def grating(self,face,ray):
+        raylight = ray.sunlight[0][0]
         if self.rend == 0:
-            total = self.grating_size[0]*self.grating_size[1]
+            total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
             c = 0
             for i in range(-1*self.grating_size[0]//2,self.grating_size[0]//2,self.grating_length):
                 for j in range(-1*self.grating_size[1]//2,self.grating_size[1]//2,self.grating_length):
@@ -685,8 +680,8 @@ class camera():
                     for k in face:
                         a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
                         if a:
-                            if not self.normalvect(self.ray,k[0][0],k[0][1],k[0][2]):
-                                rect_r = [-x for x in self.ray]
+                            if self.normalvect(raylight,k[0][0],k[0][1],k[0][2]) > 0:
+                                rect_r = [-x for x in raylight]
                                 mark = 0
                                 for m in face:
                                     b,o,p,q = self.ray_triangle_intersect([t,u,v],rect_r,m[0])
@@ -695,7 +690,10 @@ class camera():
                                         continue
                                     else:
                                         pass
-                                color = self.multiply(k[1]) if mark == 1 else k[1]
+                                if mark == 1:
+                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2]))
+                                else:
+                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])**0.5)
                                 for xi in range(self.grating_length):
                                     for yi in range(self.grating_length):
                                         turtle.goto(i+xi,j+yi)
@@ -704,14 +702,15 @@ class camera():
                                 for xi in range(self.grating_length):
                                     for yi in range(self.grating_length):
                                         turtle.goto(i+xi,j+yi)
-                                        turtle.dot(2,self.multiply(k[1]))
+                                        turtle.dot(2,self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])))
                                 continue
                         else:
                             pass
                     c += 1
                     self.bar(c,total)
     
-    def grating_cv2(self,face):
+    def grating_cv2(self,face,ray):
+        raylight = ray.sunlight[0][0]
         if self.rend == 0:
             total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
             c = 0
@@ -741,8 +740,8 @@ class camera():
                     for k in face:
                         a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
                         if a:
-                            if not self.normalvect(self.ray,k[0][0],k[0][1],k[0][2]):
-                                rect_r = [-x for x in self.ray]
+                            if self.normalvect(raylight,k[0][0],k[0][1],k[0][2]) < 0:
+                                rect_r = [-x for x in raylight]
                                 mark = 0
                                 for m in face:
                                     b,o,p,q = self.ray_triangle_intersect([t,u,v],rect_r,m[0])
@@ -751,16 +750,19 @@ class camera():
                                         continue
                                     else:
                                         pass
-                                color = self.multiply(k[1]) if mark == 1 else k[1]
-                                for i in range(self.grating_length):
-                                    for j in range(self.grating_length):
+                                if mark == 1:
+                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])**2)
+                                else:
+                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2]))
+                                for xi in range(self.grating_length):
+                                    for yi in range(self.grating_length):
                                         self.image[-j+self.image_size[1]//2+xi,
                                                    i+self.image_size[0]//2+yi] = self.hex_to_bgr(color)
                             else:
-                                for i in range(self.grating_length):
-                                    for j in range(self.grating_length):
+                                for xi in range(self.grating_length):
+                                    for yi in range(self.grating_length):
                                         self.image[-j+self.image_size[1]//2+xi,
-                                                   i+self.image_size[0]//2+yi] = self.hex_to_bgr(k[1])
+                                                   i+self.image_size[0]//2+yi] = self.hex_to_bgr(self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])))
                                 continue
                         else:
                             pass
@@ -777,7 +779,7 @@ class camera():
         turtle.goto(self.grating_size[0]//2,self.grating_size[1]//2)
         turtle.penup()
 
-    def normalvect(self,vector,point1,point2,point3):
+    def normalvect(self, vector, point1, point2, point3):
         vector1 = (
             point2[0] - point1[0],
             point2[1] - point1[1], 
@@ -798,21 +800,34 @@ class camera():
             cross_product[1] * vector[1] +
             cross_product[2] * vector[2]
         )
-        if dot_product > 0:
-            return True
-        else:
-            return False
         
-    def multiply(self,color):
+        length_cross = math.sqrt(
+            cross_product[0] ** 2 + 
+            cross_product[1] ** 2 + 
+            cross_product[2] ** 2
+        )
+        length_vector = math.sqrt(
+            vector[0] ** 2 + 
+            vector[1] ** 2 + 
+            vector[2] ** 2
+        )
+        
+        if length_cross == 0 or length_vector == 0:
+            return 0.0
+        cosine_value = dot_product / (length_cross * length_vector)
+        return cosine_value
+        
+    def multiply(self,color,value=0.02):
+        shade_value = (value+1)*127.5
         def hex_to_rgb(hex_color):
             hex_color = hex_color.lstrip('#')
             return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
         def rgb_to_hex(rgb):
-            return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+            return '#{:02x}{:02x}{:02x}'.format(round(rgb[0]), round(rgb[1]), round(rgb[2]))
         r, g, b = hex_to_rgb(color)
-        new_r = (r * self.shade_value) // 255
-        new_g = (g * self.shade_value) // 255
-        new_b = (b * self.shade_value) // 255
+        new_r = (r * shade_value) // 255
+        new_g = (g * shade_value) // 255
+        new_b = (b * shade_value) // 255
         return rgb_to_hex((new_r, new_g, new_b))
     
     def delay(self,time):

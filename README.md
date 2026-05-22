@@ -14,6 +14,7 @@ An object-oriented, intuitive Python 3D graphics library based on the turtle lib
 - 📦 **Volume Calculation** — Ray method volume calculation supporting multi-directional checks and partitioning acceleration.
 - 🖼️ **Texture Mapping** — Homography matrix-based texture mapping.
 - 🌗 **Shading & Normal** — Three rendering modes: material preview / shadow mode / normal preview.
+- 💡 **Lighting System** — Independent `ray` object supporting sunlight, point light, and directional ray with brightness control.
 - 📁 **OBJ Import** — Support for importing `.obj` 3D models with normal correction.
 - 🎬 **Image & Video Export** — OpenCV-based image export and video compositing.
 - 🔄 **Transform** — Spatial transformations: rotation, translation, scaling, etc.
@@ -50,6 +51,10 @@ camera.camera_focal = 300          # Focal length
 camera.type = 1                    # Perspective mode
 camera.rend = 1                    # Shadow mode
 
+# Instantiate the lighting
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])       # Add sunlight direction
+
 # Instantiate the scene
 scene = turtleGL.scene()
 scene.face = [
@@ -62,7 +67,7 @@ scene.face = [
 ]
 
 # Depth sorting and drawing
-camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
+camera.draw_from_scene(scene.sort_all_avg(camera.camera_position), ray)
 camera.done()
 ```
 
@@ -75,9 +80,11 @@ camera = turtleGL.camera('OBJ Example')
 camera.camera_position = [-101, -121, -150]
 camera.to_target([0, 0, 50])
 camera.camera_focal = 500
-camera.ray = [1, 1, -1]
 camera.type = 1
 camera.rend = 1
+
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])       # Add sunlight direction
 
 scene = turtleGL.scene()
 scene.import_obj('model.obj', 50, '#66ccff')  # Scale 50x, specify color
@@ -91,7 +98,7 @@ for i in range(360):
                                150 * math.sin(math.radians(i)),
                                150]
     camera.to_target([0, 0, 0])
-    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
+    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position), ray)
     camera.update()
 ```
 
@@ -129,6 +136,9 @@ camera.camera_focal = 500
 camera.type = 1
 camera.rend = 1
 
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])
+
 scene = turtleGL.scene()
 scene.import_obj('model.obj', 50, '#66ccff')
 scene.check_obj_norm('model.obj')
@@ -141,7 +151,7 @@ volume.check = True          # Multi-directional check
 volume.allow_edge = True     # Allow edge intersections
 volume.volume(scene.face)    # Calculate volume
 
-camera.draw_from_scene(scene.sort_line_avg(camera.camera_position))
+camera.draw_from_scene(scene.sort_line_avg(camera.camera_position), ray)
 for i in volume.points:
     camera.dot(i)
 camera.done()
@@ -159,6 +169,9 @@ camera.camera_focal = 500
 camera.type = 1
 camera.rend = 1
 
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])
+
 scene = turtleGL.scene()
 scene.tex = [
     [[[50, 50, 100], [-50, 50, 100], [-50, -50, 100], [50, -50, 100]], 'grass_up.png'],
@@ -168,7 +181,7 @@ scene.tex = [
 # Render and export using OpenCV
 camera.image_size = [700, 700]
 camera.create_image('#ffffff')
-camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position))
+camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position), ray)
 camera.imshow()       # Display
 camera.imwrite('output.png')  # Save image
 ```
@@ -191,9 +204,7 @@ The camera object handles 3D to 2D projection and rendering.
 | `camera_focal` | `float` | `1` | Focal length |
 | `point_behind_cam_type` | `int` | `0` | Handling method for points behind the camera (0/1/2/3) |
 | `point_behind_cam_allow_count` | `int` | `0` | Number of allowed behind-camera points during material rendering |
-| `ray` | `[x,y,z]` | `[0,0,-1]` | Light direction, used for shading |
 | `rend` | `int` | `0` | Rendering type: 0 material preview / 1 shadow mode / 2 normal preview |
-| `shade_value` | `int` | `128` | Multiply factor for shading (0-255) |
 | `pensize` | `int` | `2` | Pen size (only affects lines) |
 | `pencolor` | `str` | `'#000000'` | Pen color (only affects lines) |
 | `type` | `int` | `1` | Camera type: 0 cabinet / 1 perspective / 2 isometric / -1 orthographic |
@@ -216,7 +227,7 @@ The camera object handles 3D to 2D projection and rendering.
 | Mode | Description |
 |------|-------------|
 | `0` — Material Preview | Faces display the specified color directly |
-| `1` — Shadow Mode | Shadows calculated based on angle between light direction and normal; backlit faces use the multiply factor |
+| `1` — Shadow Mode | Shading calculated based on the `ray` lighting object; light intensity is computed from sunlight, point light, and directional ray sources |
 | `2` — Normal Mode | Normal direction cosine relative to camera direction > 0 displays blue, otherwise red |
 
 #### Methods
@@ -242,7 +253,7 @@ dot([x,y,z], color)           # Draw a single point
 drawline(linedata)            # Draw an edge
 drawface(facedata)            # Draw a face
 drawtex(facedata)             # Draw texture
-draw_from_scene(scenedata)    # Draw integrated data
+draw_from_scene(scenedata, ray) # Draw integrated data with lighting
 draw_axis(l)                  # Draw coordinate axes
 write(point, str)             # Write text at a 3D position
 
@@ -250,7 +261,7 @@ write(point, str)             # Write text at a 3D position
 drawline_cv2(linedata)        # Draw edge with OpenCV
 drawface_cv2(facedata)        # Draw face with OpenCV
 drawtex_cv2(facedata)         # Draw texture with OpenCV
-draw_from_scene_cv2(scenedata)# Draw integrated data with OpenCV
+draw_from_scene_cv2(scenedata, ray) # Draw integrated data with OpenCV with lighting
 
 # Image Export
 create_image(bgcolor)         # Initialize image (can be called repeatedly to clear)
@@ -405,6 +416,37 @@ volume(scene_face_data)  # Calculate volume, return all interior points
 
 ---
 
+### Ray Object
+
+Lighting object that manages light sources and computes shading values for faces.
+
+#### Attributes
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `sunlight` | `[]` | List of sunlight sources `[direction, brightness]` |
+| `pointlight` | `[]` | List of point light sources `[position, brightness]` |
+| `ray` | `[]` | List of directional ray sources `[point, direction, brightness]` |
+
+#### Methods
+
+```python
+add_sunlight(vec, brightness=1)    # Add sunlight (directional light), brightness defaults to 1
+add_pointlight(pos, brightness)    # Add point light at position with brightness
+add_ray(point, vec, brightness)    # Add directional ray from point in direction with brightness
+get_value(point1, point2, point3)  # Compute combined shading value for a triangle face (returns -1 to 1)
+```
+
+#### Light Types
+
+| Type | Description |
+|------|-------------|
+| Sunlight | Directional light; shading based on angle between light direction and face normal |
+| Point Light | Positional light; shading based on angle and distance attenuation |
+| Directional Ray | Light from a point in a direction; shading based on angle between ray and face normal |
+
+---
+
 ## 🧪 Experimental: Rasterization
 
 Raster algorithm is experimental and not yet stable.
@@ -413,10 +455,10 @@ Raster algorithm is experimental and not yet stable.
 scene.triangulation()             # Triangulate faces (raster mode only supports triangles)
 camera.grating_size = [500, 400]  # Set rendering area size
 camera.show_grating_limit()       # Show rendering area border
-camera.grating(face)              # Execute raster calculation
+camera.grating(face, ray)         # Execute raster calculation
 ```
 
-In rendering mode `rend=1`, raster mode does not use shadow calculation but computes the light path.
+In rendering mode `rend=1`, raster mode uses the `ray` lighting object to compute light paths and shadows.
 
 ---
 
@@ -458,6 +500,7 @@ turtleGL-3d/
         │   ├── camera.py      # Camera object
         │   ├── scene.py       # Scene object
         │   ├── plot3d.py      # 3D function plot object
+        │   ├── ray.py         # Lighting object
         │   └── volume.py      # Volume calculation object
         └── example/
 ```

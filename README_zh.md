@@ -15,6 +15,7 @@
 - 📦 **Volume Calculation** — 射线法体积计算，支持多向检查与分区加速
 - 🖼️ **Texture Mapping** — 单应性矩阵（Homography）贴图映射
 - 🌗 **Shading & Normal** — 材质预览 / 阴影模式 / 法线预览三种渲染模式
+- 💡 **Lighting System** — 独立的 `ray` 光照对象，支持平行光、点光源和定向光线，可调节亮度
 - 📁 **OBJ Import** — 支持 `.obj` 3D 模型导入与法线修正
 - 🎬 **Image & Video Export** — 基于 OpenCV 的图像导出与视频合成
 - 🔄 **Transform** — 旋转、平移、缩放等空间变换操作
@@ -51,6 +52,10 @@ camera.camera_focal = 300          # 焦距
 camera.type = 1                    # 透视模式
 camera.rend = 1                    # 阴影模式
 
+# 实例化光照
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])       # 添加平行光方向
+
 # 实例化场景
 scene = turtleGL.scene()
 scene.face = [
@@ -63,7 +68,7 @@ scene.face = [
 ]
 
 # 深度排序并绘制
-camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
+camera.draw_from_scene(scene.sort_all_avg(camera.camera_position), ray)
 camera.done()
 ```
 
@@ -76,9 +81,11 @@ camera = turtleGL.camera('OBJ Example')
 camera.camera_position = [-101, -121, -150]
 camera.to_target([0, 0, 50])
 camera.camera_focal = 500
-camera.ray = [1, 1, -1]
 camera.type = 1
 camera.rend = 1
+
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])       # 添加平行光方向
 
 scene = turtleGL.scene()
 scene.import_obj('model.obj', 50, '#66ccff')  # 缩放50倍，指定颜色
@@ -92,7 +99,7 @@ for i in range(360):
                                150 * math.sin(math.radians(i)),
                                150]
     camera.to_target([0, 0, 0])
-    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
+    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position), ray)
     camera.update()
 ```
 
@@ -130,6 +137,9 @@ camera.camera_focal = 500
 camera.type = 1
 camera.rend = 1
 
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])
+
 scene = turtleGL.scene()
 scene.import_obj('model.obj', 50, '#66ccff')
 scene.check_obj_norm('model.obj')
@@ -142,7 +152,7 @@ volume.check = True          # 多向检查
 volume.allow_edge = True     # 允许边界交点
 volume.volume(scene.face)    # 计算体积
 
-camera.draw_from_scene(scene.sort_line_avg(camera.camera_position))
+camera.draw_from_scene(scene.sort_line_avg(camera.camera_position), ray)
 for i in volume.points:
     camera.dot(i)
 camera.done()
@@ -160,6 +170,9 @@ camera.camera_focal = 500
 camera.type = 1
 camera.rend = 1
 
+ray = turtleGL.ray()
+ray.add_sunlight([1, 1, -1])
+
 scene = turtleGL.scene()
 scene.tex = [
     [[[50, 50, 100], [-50, 50, 100], [-50, -50, 100], [50, -50, 100]], 'grass_up.png'],
@@ -169,7 +182,7 @@ scene.tex = [
 # 使用 OpenCV 渲染并导出
 camera.image_size = [700, 700]
 camera.create_image('#ffffff')
-camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position))
+camera.draw_from_scene_cv2(scene.sort_all_avg(camera.camera_position), ray)
 camera.imshow()       # 显示
 camera.imwrite('output.png')  # 保存图像
 ```
@@ -192,9 +205,7 @@ camera.imwrite('output.png')  # 保存图像
 | `camera_focal` | `float` | `1` | 焦距 |
 | `point_behind_cam_type` | `int` | `0` | 相机背侧点处理方式（0/1/2/3） |
 | `point_behind_cam_allow_count` | `int` | `0` | 材质绘制中允许的背侧点数量 |
-| `ray` | `[x,y,z]` | `[0,0,-1]` | 光线方向，用于阴影计算 |
 | `rend` | `int` | `0` | 渲染类型：0 材质预览 / 1 阴影模式 / 2 法线预览 |
-| `shade_value` | `int` | `128` | 正片叠底系数（0-255） |
 | `pensize` | `int` | `2` | 画笔大小（仅对线生效） |
 | `pencolor` | `str` | `'#000000'` | 画笔颜色（仅对线生效） |
 | `type` | `int` | `1` | 相机类型：0 斜二侧 / 1 透视 / 2 等距 / -1 正交 |
@@ -217,7 +228,7 @@ camera.imwrite('output.png')  # 保存图像
 | 模式 | 说明 |
 |------|------|
 | `0` — 材质预览 | 面直接显示指定颜色 |
-| `1` — 阴影模式 | 根据光线方向和法线夹角计算阴影，背光面使用正片叠底系数 |
+| `1` — 阴影模式 | 基于 `ray` 光照对象计算着色，光强由平行光、点光源和定向光线综合计算 |
 | `2` — 法线模式 | 法线方向与摄像头方向余弦 > 0 显示蓝色，否则显示红色 |
 
 #### 方法
@@ -243,7 +254,7 @@ dot([x,y,z], color)           # 绘制单点
 drawline(linedata)            # 绘制边
 drawface(facedata)            # 绘制面
 drawtex(facedata)             # 绘制贴图
-draw_from_scene(scenedata)    # 绘制整合数据
+draw_from_scene(scenedata, ray) # 绘制整合数据（含光照）
 draw_axis(l)                  # 绘制坐标轴
 write(point, str)             # 在 3D 位置写入文字
 
@@ -251,7 +262,7 @@ write(point, str)             # 在 3D 位置写入文字
 drawline_cv2(linedata)        # OpenCV 绘制边
 drawface_cv2(facedata)        # OpenCV 绘制面
 drawtex_cv2(facedata)         # OpenCV 绘制贴图
-draw_from_scene_cv2(scenedata)# OpenCV 绘制整合数据
+draw_from_scene_cv2(scenedata, ray) # OpenCV 绘制整合数据（含光照）
 
 # 图像导出
 create_image(bgcolor)         # 初始化图像（可反复调用实现清屏）
@@ -406,6 +417,37 @@ volume(scene_face_data)  # 计算体积，返回所有内部点
 
 ---
 
+### Ray 对象
+
+光照对象，管理光源并计算面的着色值。
+
+#### 属性
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| `sunlight` | `[]` | 平行光列表 `[方向, 亮度]` |
+| `pointlight` | `[]` | 点光源列表 `[位置, 亮度]` |
+| `ray` | `[]` | 定向光线列表 `[起点, 方向, 亮度]` |
+
+#### 方法
+
+```python
+add_sunlight(vec, brightness=1)    # 添加平行光（方向光），亮度默认为 1
+add_pointlight(pos, brightness)    # 添加点光源，指定位置和亮度
+add_ray(point, vec, brightness)    # 添加定向光线，指定起点、方向和亮度
+get_value(point1, point2, point3)  # 计算三角面的综合着色值（返回 -1 到 1）
+```
+
+#### 光源类型
+
+| 类型 | 说明 |
+|------|------|
+| 平行光（Sunlight） | 方向光，根据光线方向与面法线夹角计算着色 |
+| 点光源（Point Light） | 位置光，根据光线方向与面法线夹角及距离衰减计算着色 |
+| 定向光线（Ray） | 从某点沿方向发射的光线，根据光线方向与面法线夹角计算着色 |
+
+---
+
 ## 🧪 Experimental: Rasterization
 
 光栅算法为实验性功能，尚不稳定。
@@ -414,10 +456,10 @@ volume(scene_face_data)  # 计算体积，返回所有内部点
 scene.triangulation()             # 面三角化（光栅模式仅支持三角面）
 camera.grating_size = [500, 400]  # 设置渲染区尺寸
 camera.show_grating_limit()       # 显示渲染区边缘
-camera.grating(face)              # 执行光栅计算
+camera.grating(face, ray)         # 执行光栅计算
 ```
 
-在渲染模式 `rend=1` 时，光栅模式不再使用阴影计算，而是计算光线路径。
+在渲染模式 `rend=1` 时，光栅模式使用 `ray` 光照对象计算光线路径和阴影。
 
 ---
 
@@ -459,6 +501,7 @@ turtleGL-3d/
         │   ├── camera.py      # 摄像头对象
         │   ├── scene.py       # 场景对象
         │   ├── plot3d.py      # 3D 函数图像对象
+        │   ├── ray.py         # 光照对象
         │   └── volume.py      # 体积计算对象
         └── example/
 ```

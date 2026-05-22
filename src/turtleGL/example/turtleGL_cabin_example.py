@@ -27,6 +27,8 @@ scene.sort_line_cabin()#仅边
 scene.sort_face_cabin()#仅面
 scene.sort_all_cabin()#全部整理，直接返回结构化数据，不修改对象
 
+ray = turtleGL.ray()
+
 #相机对象
 camera = turtleGL.camera('turtleGL cabin example')
 #禁用阴影功能
@@ -34,8 +36,8 @@ camera.rend = 0
 #斜二侧模式
 camera.type = 0
 #绘制面
-camera.draw_from_scene(scene.face)
+camera.draw_from_scene(scene.face,ray)
 #绘制边
-camera.draw_from_scene(scene.line)
+camera.draw_from_scene(scene.line,ray)
 #保持显示
 camera.done()

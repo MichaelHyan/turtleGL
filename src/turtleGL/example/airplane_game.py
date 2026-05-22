@@ -6,8 +6,9 @@ camera.camera_position = [0,400,0]
 camera.to_target([0,0,0])
 camera.camera_focal = 300
 camera.type = 1
-camera.rend = 1
-
+camera.rend = 0
+camera.bgcolor('#000000')
+ray = turtleGL.ray()
 class Player:
     def __init__(self):
         self.x = 0
@@ -189,7 +190,7 @@ try:
         scene.line = []
 
         for face in scene.face:
-            camera.drawface(face)
+            camera.drawface(face,ray)
 
         camera.write([-280, 0, 250], f'得分: {game.score}', font=("Arial", 16, "bold"))
         camera.draw_axis(5)

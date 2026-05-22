@@ -26,7 +26,7 @@ camera.to_target([0,0,0])
 camera.camera_focal = 200
 camera.ray = [-1,1,-1]
 camera.type = 1
-camera.rend = 1
+camera.rend = 0
 cubes = []
 for i in range(27):#块对象数组
     cube = turtleGL.scene()
@@ -300,9 +300,11 @@ for i in cubes:
     for j in i.line:
         scene.line.append(j)
 
+ray = turtleGL.ray()
+
 while True:
     camera.clear()
     camera.camera_position = [500*math.cos(math.radians(r)),500*math.sin(math.radians(r)),h]
     camera.to_target([0,0,0])
-    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position))
+    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position),ray)
     camera.update()

@@ -5,9 +5,8 @@ camera = turtleGL.camera('turtleGL anime example')
 camera.camera_position = [-101,-121,131]
 camera.camera_direction = [1,1,-1]
 camera.camera_focal = 300
-camera.ray = [-1,-1,1]
 camera.type = 1 #透视模式
-camera.rend = 1 #阴影模式
+camera.rend = 0
 scene = turtleGL.scene()
 scene.line = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0]], '#000000'], 
               [[[-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0]], '#000000'], 
@@ -30,14 +29,14 @@ scene.face = [[[[50.0, 50.0, 0.0], [-50.0, 50.0, 0.0], [-50.0, -50.0, 0.0], [50.
 
 #camera.bgcolor('#000000') #底色
 
+ray = turtleGL.ray()
+
 i = 0
 while True:
     camera.clear() #清空画布
     camera.camera_position = [150*math.cos(math.radians(i)),150*math.sin(math.radians(i)),150*math.sin(math.radians(i))] #相机位置
     camera.to_target([0,0,50]) #相机指向
-    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position)) #绘制面和边
-    #camera.draw_from_scene(scene.sort_face_avg(camera_pos=camera.camera_position)) #仅绘制面
-    #camera.draw_from_scene(scene.sort_line_avg(camera_pos=camera.camera_position))s #仅绘制边
+    camera.draw_from_scene(scene.sort_all_avg(camera.camera_position),ray)
     camera.update() #更新画布
     time.sleep(0.001)
     i+=1

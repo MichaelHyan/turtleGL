@@ -185,7 +185,7 @@ class RacingGame:
         self.cam.setposition([self.player_x, 5, self.player_z - 8])
         self.cam.setdirection([0, -0.5, 1])
         
-        self.cam.draw_from_scene(scene)
+        self.cam.draw_from_scene(scene,None)
         
         self.cam.write([self.player_x - 15, 8, self.player_z], f'分数: {self.score}', font=("Arial", 16, "bold"))
         self.cam.write([self.player_x - 15, 6, self.player_z], f'速度: {int(self.speed*50)}', font=("Arial", 16, "bold"))
