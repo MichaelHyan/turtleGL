@@ -649,8 +649,7 @@ class camera():
         intersection_point = ray_origin + t * ray_direction
         return True, intersection_point[0], intersection_point[2], intersection_point[1]
 
-    def grating(self,face,ray):
-        raylight = ray.sunlight[0][0]
+    def grating(self,face,ray_object):
         if self.rend == 0:
             total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
             c = 0
@@ -680,37 +679,27 @@ class camera():
                     for k in face:
                         a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
                         if a:
-                            if self.normalvect(raylight,k[0][0],k[0][1],k[0][2]) > 0:
-                                rect_r = [-x for x in raylight]
-                                mark = 0
+                            factor = -1
+                            rays = ray_object.get_ray([t,u,v])
+                            for rayl in rays:
+                                raylight = rayl[0]
+                                rect_r = [x for x in raylight]
                                 for m in face:
                                     b,o,p,q = self.ray_triangle_intersect([t,u,v],rect_r,m[0])
                                     if b and (m != k):
-                                        mark = 1
+                                        factor += rayl[1]
                                         continue
-                                    else:
-                                        pass
-                                if mark == 1:
-                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2]))
-                                else:
-                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])**0.5)
+                                color = self.multiply(k[1],factor if factor <= 1 else 1)
                                 for xi in range(self.grating_length):
                                     for yi in range(self.grating_length):
                                         turtle.goto(i+xi,j+yi)
                                         turtle.dot(2,color)
-                            else:
-                                for xi in range(self.grating_length):
-                                    for yi in range(self.grating_length):
-                                        turtle.goto(i+xi,j+yi)
-                                        turtle.dot(2,self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])))
-                                continue
                         else:
                             pass
                     c += 1
                     self.bar(c,total)
     
-    def grating_cv2(self,face,ray):
-        raylight = ray.sunlight[0][0]
+    def grating_cv2(self,face,ray_object):
         if self.rend == 0:
             total = (self.grating_size[0]//self.grating_length)*(self.grating_size[1]//self.grating_length)
             c = 0
@@ -740,30 +729,21 @@ class camera():
                     for k in face:
                         a,t,u,v = self.ray_triangle_intersect(self.camera_position,ray,k[0])
                         if a:
-                            if self.normalvect(raylight,k[0][0],k[0][1],k[0][2]) < 0:
+                            factor = -1
+                            rays = ray_object.get_ray([t,u,v])
+                            for rayl in rays:
+                                raylight = rayl[0]
                                 rect_r = [-x for x in raylight]
-                                mark = 0
                                 for m in face:
                                     b,o,p,q = self.ray_triangle_intersect([t,u,v],rect_r,m[0])
                                     if b and (m != k):
-                                        mark = 1
+                                        factor += rayl[1]
                                         continue
-                                    else:
-                                        pass
-                                if mark == 1:
-                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])**2)
-                                else:
-                                    color = self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2]))
+                                color = self.multiply(k[1],factor if factor <= 1 else 1)
                                 for xi in range(self.grating_length):
                                     for yi in range(self.grating_length):
-                                        self.image[-j+self.image_size[1]//2+xi,
+                                        self.image[-j+self.image_size[1]//2+xi,                                                   
                                                    i+self.image_size[0]//2+yi] = self.hex_to_bgr(color)
-                            else:
-                                for xi in range(self.grating_length):
-                                    for yi in range(self.grating_length):
-                                        self.image[-j+self.image_size[1]//2+xi,
-                                                   i+self.image_size[0]//2+yi] = self.hex_to_bgr(self.multiply(k[1],self.normalvect(raylight,k[0][0],k[0][1],k[0][2])))
-                                continue
                         else:
                             pass
                     c += 1

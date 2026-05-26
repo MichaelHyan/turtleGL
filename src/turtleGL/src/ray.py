@@ -39,6 +39,19 @@ class ray():
         cos = self.normalvect(vector,point1,point2,point3)
         return cos*brightness
 
+    def get_ray(self,point):
+        ray = []
+        for i in self.sunlight:
+            ray.append(i)
+        for i in self.pointlight:
+            dx = point[0]-i[0][0]
+            dy = point[1]-i[0][1]
+            dz = point[2]-i[0][2]
+            ray.append([[dx,dy,dz],i[1]/math.sqrt(dx**2+dy**2+dz**2)])
+        for i in self.ray:
+            ray.append([[i[1][0]-i[0][0],i[1][1]-i[0][1],i[1][2]-i[0][2]],i[2]])
+        return ray
+
     def get_value(self,point1,point2,point3):
         value = -1
         for i in self.sunlight:
